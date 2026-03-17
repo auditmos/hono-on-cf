@@ -1,4 +1,5 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
+import { bearer } from "better-auth/plugins";
 
 export const createBetterAuth = (config: {
 	database: BetterAuthOptions["database"];
@@ -9,6 +10,7 @@ export const createBetterAuth = (config: {
 		database: config.database,
 		secret: config.secret,
 		baseURL: config.baseURL,
+		plugins: [bearer()],
 		emailAndPassword: {
 			enabled: true,
 		},

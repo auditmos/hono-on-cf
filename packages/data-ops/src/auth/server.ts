@@ -13,6 +13,7 @@ export function setAuth(
 		};
 	},
 ) {
+	if (betterAuth) return betterAuth;
 	betterAuth = createBetterAuth({
 		database: drizzleAdapter(config.adapter.drizzleDb, {
 			provider: config.adapter.provider,
