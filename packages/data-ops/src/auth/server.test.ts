@@ -3,7 +3,10 @@ vi.mock("better-auth", () => ({
 }));
 
 vi.mock("better-auth/adapters/drizzle", () => ({
-	drizzleAdapter: vi.fn((_db: unknown, opts: unknown) => ({ _adapter: true, ...opts as Record<string, unknown> })),
+	drizzleAdapter: vi.fn((_db: unknown, opts: unknown) => ({
+		_adapter: true,
+		...(opts as Record<string, unknown>),
+	})),
 }));
 
 const fakeDb = {} as ReturnType<typeof import("@/database/setup").getDb>;

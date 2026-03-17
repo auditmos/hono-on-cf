@@ -19,9 +19,7 @@ describe("createBetterAuth", () => {
 
 		const config = vi.mocked(betterAuth).mock.calls[0]?.[0];
 		expect(config).toBeDefined();
-		const bearerPlugin = config?.plugins?.find(
-			(p: { id: string }) => p.id === "bearer",
-		);
+		const bearerPlugin = config?.plugins?.find((p: { id: string }) => p.id === "bearer");
 		expect(bearerPlugin).toBeDefined();
 	});
 });
