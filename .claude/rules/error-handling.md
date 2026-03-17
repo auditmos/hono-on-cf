@@ -6,7 +6,6 @@
 |-------|---------|----------|
 | DB | Drizzle wraps pg errors in `DrizzleQueryError` | data-ops |
 | API services | Return `Result<T>` | data-service `types/result.ts` |
-| Frontend | Throw `AppError` from server fns + API client | user-application `core/errors.ts` |
 
 ## Drizzle Error Unwrapping
 
@@ -31,10 +30,3 @@ function isUniqueViolation(error: unknown): boolean {
 Services return `Result<T>` — never throw `HTTPException`.
 `AppError` shape: `code`, `message`, `status`, optional `field`.
 Handlers unwrap via `resultToResponse`. Unexpected errors propagate to global `onError`.
-
-## AppError (user-application)
-
-`AppError` in `core/errors.ts`. Constructor: `new AppError(message, code, status?, field?)`.
-Server functions (direct/binding) throw `AppError`.
-`api-client.ts` throws `AppError` on `!response.ok`.
-Route components use `mutation.isError` / `mutation.error.message`.

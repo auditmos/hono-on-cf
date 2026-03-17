@@ -12,28 +12,10 @@
 			"semicolons": "always"
 		}
 	},
-	"css": {
-		"parser": {
-			"cssModules": false,
-			"tailwindDirectives": true
-		},
-		"formatter": {
-			"enabled": false
-		},
-		"linter": {
-			"enabled": false
-		}
-	},
 	"linter": {
 		"enabled": true,
 		"rules": {
 			"recommended": true,
-			"a11y": {
-				"useHtmlLang": "warn",
-				"noLabelWithoutControl": "warn",
-				"noRedundantRoles": "warn",
-				"useSemanticElements": "warn"
-			},
 			"complexity": {
 				"noExcessiveCognitiveComplexity": "warn"
 			},
@@ -93,7 +75,6 @@
 			"!**/.cache",
 			"!**/*.tsbuildinfo",
 			"!**/worker-configuration.d.ts",
-			"!**/routeTree.gen.ts",
 			"!packages/data-ops/src/drizzle/migrations",
 			"!packages/data-ops/src/drizzle/auth-schema.ts"
 		]

@@ -1,6 +1,6 @@
-# saas-on-cf
+# hono-on-cf
 
-Monorepo: TanStack Start frontend + Hono API backend on Cloudflare Workers.
+Monorepo: Hono API on Cloudflare Workers.
 
 ## Packages
 
@@ -8,7 +8,6 @@ Monorepo: TanStack Start frontend + Hono API backend on Cloudflare Workers.
 |---------|---------|
 | `packages/data-ops` | Shared DB layer (Drizzle, Zod, Better Auth) |
 | `apps/data-service` | REST API (Hono on CF Workers) |
-| `apps/user-application` | SSR Frontend (TanStack Start on CF Workers) |
 
 Each has its own `AGENTS.md` with package-specific patterns (`CLAUDE.md` symlinks to `AGENTS.md`).
 
@@ -16,11 +15,8 @@ Each has its own `AGENTS.md` with package-specific patterns (`CLAUDE.md` symlink
 
 ```bash
 pnpm run setup                    # install + build data-ops
-pnpm run dev:user-application     # frontend dev (port 3000)
 pnpm run dev:data-service         # API dev (port 8788)
-pnpm run deploy:staging:user-application
 pnpm run deploy:staging:data-service
-pnpm run deploy:production:user-application
 pnpm run deploy:production:data-service
 pnpm run seed:dev / seed:staging / seed:production
 pnpm run lint                     # check all (formatting + linting)

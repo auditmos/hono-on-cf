@@ -40,4 +40,3 @@ Open an issue with:
 |---------|---------|
 | `packages/data-ops` | Shared DB layer (Drizzle, Zod, Better Auth) |
 | `apps/data-service` | REST API (Hono on Cloudflare Workers) |
-| `apps/user-application` | SSR Frontend (TanStack Start) |

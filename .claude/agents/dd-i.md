@@ -18,10 +18,6 @@ color: green
 @.claude/rules/data-service/queues-workflows.md
 @.claude/rules/data-service/durable-objects.md
 @.claude/rules/data-service/storage.md
-@.claude/rules/user-application/tanstack.md
-@.claude/rules/user-application/react.md
-@.claude/rules/user-application/ui.md
-@.claude/rules/user-application/auth.md
 
 ---
 

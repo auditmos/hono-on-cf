@@ -1,13 +1,10 @@
 {
-	"name": "saas-on-cf",
+	"name": "hono-on-cf",
 	"version": "0.0.0",
 	"description": "",
 	"scripts": {
 		"setup": "pnpm i && pnpm run build:data-ops",
 		"build:data-ops": "pnpm run --filter data-ops build",
-		"dev:user-application": "pnpm run --filter user-application dev",
-		"deploy:staging:user-application": "pnpm run build:data-ops && pnpm run --filter user-application deploy:staging",
-		"deploy:production:user-application": "pnpm run build:data-ops && pnpm run --filter user-application deploy:production",
 		"dev:data-service": "pnpm run --filter data-service dev",
 		"deploy:staging:data-service": "pnpm run build:data-ops && pnpm run --filter data-service deploy:staging",
 		"deploy:production:data-service": "pnpm run build:data-ops && pnpm run --filter data-service deploy:production",
@@ -17,7 +14,7 @@
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"lint:ci": "biome ci .",
-		"types": "pnpm run build:data-ops && pnpm run --filter data-service --filter user-application types",
+		"types": "pnpm run build:data-ops && pnpm run --filter data-service types",
 		"init-project": "tsx scripts/init-project.ts",
 		"knip": "knip",
 		"deps": "taze",

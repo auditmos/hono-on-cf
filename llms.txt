@@ -1,19 +1,18 @@
-# saas-on-cf
+# hono-on-cf
 
-> Monorepo: TanStack Start frontend + Hono API backend on Cloudflare Workers.
+> Monorepo: Hono API on Cloudflare Workers.
 
 ## Packages
 
-- [data-ops](packages/data-ops/AGENTS.md): Shared DB layer (Drizzle ORM, Zod v4, Better Auth) consumed by both apps
+- [data-ops](packages/data-ops/AGENTS.md): Shared DB layer (Drizzle ORM, Zod v4, Better Auth) consumed by the API
 - [data-service](apps/data-service/AGENTS.md): REST API on Cloudflare Workers using Hono with WorkerEntrypoint pattern
-- [user-application](apps/user-application/AGENTS.md): SSR frontend on Cloudflare Workers using TanStack Start
 
 ## Rules
 
 ### General
 - [General TypeScript & Cloudflare](.claude/rules/general.md): Type safety, error handling, naming, array access, bug fix workflow
-- [Cloudflare Deployment](.claude/rules/cloudflare-deployment.md): Hostname separation, custom domains, SSL/TLS, Vite plugin environments
-- [Error Handling](.claude/rules/error-handling.md): Layered error approach across data-ops, data-service, and user-application
+- [Cloudflare Deployment](.claude/rules/cloudflare-deployment.md): Hostname separation, custom domains, SSL/TLS
+- [Error Handling](.claude/rules/error-handling.md): Layered error approach across data-ops and data-service
 
 ### data-ops
 - [Drizzle ORM](.claude/rules/data-ops/drizzle.md): Schema definitions, migrations, query patterns
@@ -29,16 +28,6 @@
 - [Storage](.claude/rules/data-service/storage.md): KV, R2, D1 patterns
 - [Agent SDK](.claude/rules/data-service/agent-sdk.md): Cloudflare Agents SDK patterns
 - [Agent Workflows](.claude/rules/data-service/agent-workflows.md): Agent workflow orchestration
-
-### user-application
-- [TanStack](.claude/rules/user-application/tanstack.md): Router, Query, Form patterns
-- [React](.claude/rules/user-application/react.md): Component patterns, hooks
-- [Auth](.claude/rules/user-application/auth.md): Better Auth client, protected routes
-- [UI](.claude/rules/user-application/ui.md): Component library patterns
-- [shadcn/tweakcn](.claude/rules/user-application/shadcn-tweakcn.md): UI primitives
-- [Forms](.claude/rules/user-application/form-patterns.md): Form validation and submission
-- [i18n](.claude/rules/user-application/i18n.md): use-intl, locale strategy, translation files
-- [Vite](.claude/rules/user-application/vite.md): Build config, Cloudflare Vite plugin
 
 ## Agents
 

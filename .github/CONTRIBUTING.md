@@ -1,6 +1,6 @@
-# Contributing to SaaS-on-CF (Software as a Service on Cloudflare)
+# Contributing to Hono-on-CF
 
-Thanks for your interest in contributing to SaaS-on-CF (Software as a Service on Cloudflare)! 
+Thanks for your interest in contributing to Hono-on-CF!
 This guide will help you get started.
 
 ## Code Style
@@ -51,7 +51,6 @@ This guide will help you get started.
 
 # 4. Deploy
 pnpm deploy:staging:data-service
-pnpm deploy:staging:user-application
 ```
 
 ## Pull Requests
