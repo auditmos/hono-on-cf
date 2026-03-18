@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/auditmos/hono-on-cf/compare/v1.3.0...v1.4.0) (2026-03-18)
+
+
+### Features
+
+* **data-service:** rate limit /api/auth/* at 20 req/min per IP ([e8d5cf2](https://github.com/auditmos/hono-on-cf/commit/e8d5cf2f89d3c7eee59a635ca3ba34a52b82add8)), closes [#6](https://github.com/auditmos/hono-on-cf/issues/6)
+
 # [1.3.0](https://github.com/auditmos/hono-on-cf/compare/v1.2.0...v1.3.0) (2026-03-18)
 
 
