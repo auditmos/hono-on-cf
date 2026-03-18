@@ -1,5 +1,6 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
-import { initDatabase } from "@repo/data-ops/database/setup";
+import { setAuth } from "@repo/data-ops/auth/server";
+import { getDb, initDatabase } from "@repo/data-ops/database/setup";
 import { App } from "@/hono/app";
 import { handleQueue } from "./queues";
 import { handleScheduled } from "./scheduled";
@@ -11,6 +12,14 @@ export default class DataService extends WorkerEntrypoint<Env> {
 			host: env.DATABASE_HOST,
 			username: env.DATABASE_USERNAME,
 			password: env.DATABASE_PASSWORD,
+		});
+		setAuth({
+			secret: env.BETTER_AUTH_SECRET,
+			baseURL: env.BETTER_AUTH_URL,
+			adapter: {
+				drizzleDb: getDb(),
+				provider: "pg",
+			},
 		});
 	}
 	fetch(request: Request) {
