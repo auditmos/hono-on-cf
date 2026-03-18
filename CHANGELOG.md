@@ -1,3 +1,16 @@
+# [1.2.0](https://github.com/auditmos/hono-on-cf/compare/v1.1.0...v1.2.0) (2026-03-18)
+
+
+### Bug Fixes
+
+* biome formatting + use pnpm exec in hook ([c3bab50](https://github.com/auditmos/hono-on-cf/commit/c3bab50489d0f9d2c26443dcc064e07c7f6dbea8))
+
+
+### Features
+
+* **data-service:** add requireAuth middleware, remove static API_TOKEN auth ([f1a9d8b](https://github.com/auditmos/hono-on-cf/commit/f1a9d8b00b4ab85c199d76c4a753df3bf7bee08d)), closes [#4](https://github.com/auditmos/hono-on-cf/issues/4)
+* **data-service:** bootstrap auth + mount auth route handler ([d8a664c](https://github.com/auditmos/hono-on-cf/commit/d8a664c8e39f9b463957894910894f43cc6c2971)), closes [#3](https://github.com/auditmos/hono-on-cf/issues/3)
+
 # [1.1.0](https://github.com/auditmos/hono-on-cf/compare/v1.0.0...v1.1.0) (2026-03-17)
 
 
