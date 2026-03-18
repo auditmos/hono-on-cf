@@ -87,6 +87,25 @@ describe("auth handlers", () => {
 		expect(passedRequest.headers.get("Authorization")).toBe("Bearer test-token-123");
 	});
 
+	it("delegates POST /api/auth/sign-out to Better Auth handler", async () => {
+		const { default: auth } = await import("./auth-handlers");
+		const app = new Hono().route("/api/auth", auth);
+
+		mockHandler.mockResolvedValueOnce(new Response(null, { status: 200 }));
+
+		const res = await app.request("/api/auth/sign-out", {
+			method: "POST",
+			headers: { Authorization: "Bearer test-token-123" },
+		});
+
+		expect(res.status).toBe(200);
+		expect(mockHandler).toHaveBeenCalledOnce();
+		const passedRequest = mockHandler.mock.calls[0]?.[0];
+		expect(passedRequest).toBeInstanceOf(Request);
+		expect(passedRequest.url).toContain("/api/auth/sign-out");
+		expect(passedRequest.headers.get("Authorization")).toBe("Bearer test-token-123");
+	});
+
 	it("preserves Better Auth error responses", async () => {
 		const { default: auth } = await import("./auth-handlers");
 		const app = new Hono().route("/api/auth", auth);
