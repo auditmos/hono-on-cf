@@ -32,7 +32,7 @@ clients.get("/", zValidator("query", PaginationRequestSchema), async (c) => {
 	return resultToResponse(c, await clientService.getClients(query));
 });
 
-clients.get("/:id", zValidator("param", IdParamSchema), async (c) => {
+clients.get("/:id", requireAuth(), zValidator("param", IdParamSchema), async (c) => {
 	const { id } = c.req.valid("param");
 	return resultToResponse(c, await clientService.getClientById(id));
 });
