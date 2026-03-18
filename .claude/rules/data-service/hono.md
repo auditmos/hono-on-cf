@@ -30,7 +30,7 @@ Apply in order: requestId → errorHandler → cors → auth → rateLimiter →
 app.use('*', requestId())
 app.use('*', errorHandler())
 app.use('*', cors())
-app.use('/api/*', authMiddleware())
+app.use('/api/*', requireAuth())
 app.use('/api/*', rateLimiter())
 ```
 

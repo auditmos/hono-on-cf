@@ -8,7 +8,7 @@ import {
 import type { Context } from "hono";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { authMiddleware } from "../middleware/auth";
+import { requireAuth } from "../middleware/require-auth";
 import * as clientService from "../services/client-service";
 import type { Result } from "../types/result";
 
@@ -39,7 +39,7 @@ clients.get("/:id", zValidator("param", IdParamSchema), async (c) => {
 
 clients.post(
 	"/",
-	(c, next) => authMiddleware(c.env.API_TOKEN)(c, next),
+	requireAuth(),
 	zValidator("json", ClientCreateRequestSchema),
 	async (c) => {
 		const data = c.req.valid("json");
@@ -49,7 +49,7 @@ clients.post(
 
 clients.put(
 	"/:id",
-	(c, next) => authMiddleware(c.env.API_TOKEN)(c, next),
+	requireAuth(),
 	zValidator("param", IdParamSchema),
 	zValidator("json", ClientUpdateRequestSchema),
 	async (c) => {
@@ -61,7 +61,7 @@ clients.put(
 
 clients.delete(
 	"/:id",
-	(c, next) => authMiddleware(c.env.API_TOKEN)(c, next),
+	requireAuth(),
 	zValidator("param", IdParamSchema),
 	async (c) => {
 		const { id } = c.req.valid("param");

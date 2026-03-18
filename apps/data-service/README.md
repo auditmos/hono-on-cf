@@ -22,7 +22,7 @@ Hono Framework.
 Route definitions with validation.
 
 ##### [`src/hono/middleware/`](./src/hono/middleware)
-Auth (bearer token) and rate limiting.
+Session auth (`requireAuth()`) and rate limiting.
 
 ##### [`src/hono/services/`](./src/hono/services)
 Business logic layer.
@@ -42,7 +42,7 @@ Business logic layer.
 | PUT | `/users/:id` | 🔒 | Update |
 | DELETE | `/users/:id` | 🔒 | Delete |
 
-🔒 = `Authorization: Bearer <API_TOKEN>`
+🔒 = `Authorization: Bearer <session_token>` (via `requireAuth()` — session-based)
 
 **Webhooks** `/webhooks`
 | Method | Path | Auth | Description |

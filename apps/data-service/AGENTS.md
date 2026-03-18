@@ -33,7 +33,7 @@ See `hono.md` and `error-handling.md` rules for handler/service/query patterns a
 1. `requestId()` - generates/passes correlation ID
 2. `onError` - global error handler
 3. `cors` - CORS headers
-4. Route-specific: `authMiddleware`, `rateLimiter`, `zValidator`
+4. Route-specific: `requireAuth()`, `rateLimiter`, `zValidator`
 
 ## Endpoints
 
@@ -71,9 +71,9 @@ pnpm run deploy:prod      # deploy to production
 
 Required in `.dev.vars` (local) or Cloudflare dashboard (remote):
 - `DATABASE_HOST`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`
-- `API_TOKEN` - Bearer token for protected endpoints
 - `CLOUDFLARE_ENV` - dev | staging | production
 - `ALLOWED_ORIGINS` - comma-separated origins (prod/staging only)
+- `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` - Better Auth config
 
 ## Don't
 
