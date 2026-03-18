@@ -19,8 +19,7 @@ export const auth = betterAuth({
   database: { ... },
   plugins: [ ... ],
   session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
-    updateAge: 60 * 60 * 24,     // refresh daily
+    expiresIn: 60 * 60 * 24 * 365 * 10, // 10 years — effectively no expiry
   },
 })
 
@@ -35,16 +34,14 @@ export type Auth = typeof auth
 
 ## Session Management
 
-- Configure `expiresIn` and `updateAge` appropriately
-- Use cookie caching for serverless (reduces DB hits)
-- For sensitive ops, check session freshness
+- `session.expiresIn` (seconds): time until session expires. Default = `604800` (7 days). **No disable option** — must be a positive number. For indefinite sessions, use a large value.
+- `session.updateAge` (seconds): rolling refresh threshold. Default = `86400` (24 hours). On each `getSession` call, if remaining lifetime < `updateAge`, expiry is extended by another `expiresIn`. Irrelevant when `expiresIn` is very large.
+- Session policy for this project: **no automatic expiry** — sessions are valid indefinitely until manually revoked (delete row from `auth_session`). Set `expiresIn: 60 * 60 * 24 * 365 * 10` (10 years).
 
 ```ts
 session: {
-  cookieCache: {
-    enabled: true,
-    maxAge: 5 * 60, // 5 min cache
-  },
+  modelName: "auth_session",
+  expiresIn: 60 * 60 * 24 * 365 * 10, // 10 years — effectively no expiry
 }
 ```
 
