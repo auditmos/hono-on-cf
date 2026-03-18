@@ -154,7 +154,8 @@ export const createBetterAuth = (config: {
     },
     session: {
       modelName: "auth_session",
-      expiresIn: 60 * 60 * 24 * 365 * 10, // 10 years — effectively no expiry
+      expiresIn: 60 * 60 * 24 * 400, // 400 days — RFC 6265 cookie Max-Age limit (better-call@1.3.2+)
+      updateAge: 60 * 60 * 24,       // refresh daily on active use
     },
     verification: { modelName: "auth_verification" },
     account: { modelName: "auth_account" },
@@ -162,7 +163,7 @@ export const createBetterAuth = (config: {
 };
 ```
 
-**Session policy:** Sessions are set to expire in 10 years — effectively permanent. Revocation is manual (see below). No automatic session rotation is expected. This simplifies server-to-server clients that can't handle token refreshes.
+**Session policy:** `expiresIn` set to 400 days (RFC 6265 cookie Max-Age limit enforced by `better-call@1.3.2+` — 10-year value caused 500 on sign-up). `updateAge: 86400` rolls expiry daily on active use, so sessions are effectively permanent for active users. Revocation is manual (delete from `auth_session`). Server-to-server clients using Bearer tokens are unaffected by cookie expiry.
 
 No schema changes needed for the bearer plugin.
 
@@ -371,7 +372,7 @@ The migration was done as a clean cutover — no dual-token phase:
 
 | File | Change |
 |------|--------|
-| `packages/data-ops/src/auth/setup.ts` | Added `bearer()` plugin; `session.expiresIn` = 10 years |
+| `packages/data-ops/src/auth/setup.ts` | Added `bearer()` plugin; `session.expiresIn` = 400 days; `session.updateAge` = 1 day |
 | `packages/data-ops/src/auth/server.ts` | `setAuth()` init guard; `getAuth()` throw if uninitialized |
 | `apps/data-service/src/index.ts` | `setAuth()` call in constructor after `initDatabase()` + `getDb()` |
 | `apps/data-service/src/hono/app.ts` | Rate limiter on `/api/auth/*`; auth route mounted |
@@ -387,5 +388,5 @@ The migration was done as a clean cutover — no dual-token phase:
 | Should GET endpoints require auth? | `GET /` (list) is public; `GET /:id` requires auth — matches use case where listing is discovery but detail access is gated |
 | Should `requireAuth()` check `user.approved`? | Yes — combined into `requireAuth()`, returns 403 if not approved |
 | Do we need an admin route to approve users? | No — direct DB operation (`UPDATE auth_user SET approved = true`) for now |
-| Session expiry — customize defaults? | Yes — set to 10 years (`expiresIn: 60*60*24*365*10`); effectively no expiry; revoke manually via `auth_session` deletion |
+| Session expiry — customize defaults? | Yes — `expiresIn: 400 days` (RFC 6265 limit) + `updateAge: 86400` (daily roll); effectively no expiry for active users; revoke manually via `auth_session` deletion |
 | Rate limit auth routes? | Yes — 20 req/min per IP via `rateLimiter` middleware on `/api/auth/*` |

@@ -74,7 +74,7 @@ import { checkDatabase, type LivenessResponse } from "@repo/data-ops/health"
 
 `setAuth()` is idempotent (init guard) — safe to call on every Worker constructor invocation. `getAuth()` throws if `setAuth()` hasn't been called yet.
 
-Session policy: `expiresIn` is intentionally set to 10 years (no-expiry). Don't change without discussion. Sessions are revoked manually by deleting from `auth_session`.
+Session policy: `expiresIn` is set to 400 days (RFC 6265 cookie Max-Age limit enforced by `better-call`). `updateAge: 86400` rolls expiry daily — effectively no-expiry for active users. Sessions are revoked manually by deleting from `auth_session`.
 
 `bearer()` plugin in `createBetterAuth` is required — it converts `Authorization: Bearer <token>` to an internal cookie lookup. Do not remove.
 

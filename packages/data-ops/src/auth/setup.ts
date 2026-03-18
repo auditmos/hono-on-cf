@@ -27,7 +27,8 @@ export const createBetterAuth = (config: {
 		},
 		session: {
 			modelName: "auth_session",
-			expiresIn: 60 * 60 * 24 * 365 * 10,
+			expiresIn: 60 * 60 * 24 * 400,
+			updateAge: 60 * 60 * 24,
 		},
 		verification: {
 			modelName: "auth_verification",

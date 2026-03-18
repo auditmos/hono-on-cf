@@ -9,6 +9,8 @@ vi.mock("better-auth/plugins", () => ({
 	bearer: vi.fn(() => ({ id: "bearer" })),
 }));
 
+const RFC_COOKIE_MAX_AGE = 60 * 60 * 24 * 400; // 34560000s — better-call hard limit
+
 describe("createBetterAuth", () => {
 	it("includes bearer plugin", () => {
 		createBetterAuth({
@@ -23,7 +25,7 @@ describe("createBetterAuth", () => {
 		expect(bearerPlugin).toBeDefined();
 	});
 
-	it("configures session to not expire automatically (10 years)", () => {
+	it("sets expiresIn within RFC cookie Max-Age limit (≤400 days)", () => {
 		createBetterAuth({
 			database: {} as never,
 			secret: "test",
@@ -31,7 +33,17 @@ describe("createBetterAuth", () => {
 		});
 
 		const config = vi.mocked(betterAuth).mock.calls[0]?.[0];
-		const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
-		expect(config?.session?.expiresIn).toBe(TEN_YEARS);
+		expect(config?.session?.expiresIn).toBeLessThanOrEqual(RFC_COOKIE_MAX_AGE);
+	});
+
+	it("sets updateAge to refresh sessions daily", () => {
+		createBetterAuth({
+			database: {} as never,
+			secret: "test",
+			baseURL: "http://localhost",
+		});
+
+		const config = vi.mocked(betterAuth).mock.calls[0]?.[0];
+		expect(config?.session?.updateAge).toBe(60 * 60 * 24);
 	});
 });

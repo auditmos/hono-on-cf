@@ -19,7 +19,8 @@ export const auth = betterAuth({
   database: { ... },
   plugins: [ ... ],
   session: {
-    expiresIn: 60 * 60 * 24 * 365 * 10, // 10 years — effectively no expiry
+    expiresIn: 60 * 60 * 24 * 400, // 400 days — RFC 6265 cookie Max-Age limit
+    updateAge: 60 * 60 * 24,       // refresh daily on active use
   },
 })
 
@@ -34,14 +35,15 @@ export type Auth = typeof auth
 
 ## Session Management
 
-- `session.expiresIn` (seconds): time until session expires. Default = `604800` (7 days). **No disable option** — must be a positive number. For indefinite sessions, use a large value.
-- `session.updateAge` (seconds): rolling refresh threshold. Default = `86400` (24 hours). On each `getSession` call, if remaining lifetime < `updateAge`, expiry is extended by another `expiresIn`. Irrelevant when `expiresIn` is very large.
-- Session policy for this project: **no automatic expiry** — sessions are valid indefinitely until manually revoked (delete row from `auth_session`). Set `expiresIn: 60 * 60 * 24 * 365 * 10` (10 years).
+- `session.expiresIn` (seconds): time until session expires. Default = `604800` (7 days). **No disable option** — must be a positive number. Max value: `34560000` (400 days) — enforced by `better-call` cookie serializer.
+- `session.updateAge` (seconds): rolling refresh threshold. Default = `86400` (24 hours). On each `getSession` call, if remaining lifetime < `updateAge`, expiry is extended by another `expiresIn`.
+- Session policy for this project: **no automatic expiry for active users** — sessions are valid indefinitely as long as the user is active (rolled daily). Revoke manually by deleting row from `auth_session`. `expiresIn` capped at 400 days (RFC 6265 limit enforced by `better-call@1.3.2+`).
 
 ```ts
 session: {
   modelName: "auth_session",
-  expiresIn: 60 * 60 * 24 * 365 * 10, // 10 years — effectively no expiry
+  expiresIn: 60 * 60 * 24 * 400, // 400 days — RFC 6265 cookie Max-Age limit
+  updateAge: 60 * 60 * 24,       // refresh daily
 }
 ```
 
