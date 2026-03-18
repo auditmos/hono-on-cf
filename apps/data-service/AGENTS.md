@@ -39,8 +39,33 @@ See `hono.md` and `error-handling.md` rules for handler/service/query patterns a
 
 - `GET /health/live` - liveness (instant 200)
 - `GET /health/ready` - readiness (checks DB)
-- `GET|POST|PUT|DELETE /users/*` - CRUD (POST/PUT/DELETE require Bearer token)
+- `GET /clients` - public list
+- `GET|POST|PUT|DELETE /clients/*` - CRUD (GET /:id + mutations require auth)
+- `POST /api/auth/*` - Better Auth routes (sign-up, sign-in, sign-out, get-session)
 - `POST /webhooks/*` - inbound webhooks (signature verified)
+
+<important if="you are adding or modifying routes, handlers, or middleware">
+
+## Auth Patterns
+
+`requireAuth()` from `middleware/require-auth.ts` — checks session validity + `approved` flag:
+- `401` — no valid session
+- `403` — valid session but `approved === false`
+- On success, `c.get("session")` → `{ session, user }` typed
+
+```ts
+// Public — no middleware
+clients.get("/", zValidator(...), handler)
+
+// Protected — requireAuth() before validators
+clients.post("/", requireAuth(), zValidator(...), handler)
+```
+
+**Service Bindings:** RPC methods on `WorkerEntrypoint` bypass HTTP entirely — no `requireAuth()` needed on them. Only `fetch()` goes through Hono middleware.
+
+**Auth routes** (`/api/auth/*`) already have `rateLimiter({ windowMs: 60_000, maxRequests: 20 })` applied in `app.ts` — don't add again.
+
+</important>
 
 ## Webhooks
 

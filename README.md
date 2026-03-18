@@ -41,6 +41,33 @@ Replace `dev` with `staging` or `production`.
 - `packages/data-ops/` — `.env.dev`, `.env.staging`, `.env.production` (see [.env.example](./packages/data-ops/.env.example))
 - `apps/data-service/` — `.dev.vars` (local), Cloudflare dashboard (remote)
 
+## Authentication
+
+```bash
+# Sign up
+curl -X POST http://localhost:8788/api/auth/sign-up/email \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"...","name":"User"}'
+
+# Sign in — returns session token
+curl -X POST http://localhost:8788/api/auth/sign-in/email \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"..."}'
+# → { "session": { "token": "abc123..." }, "user": { ... } }
+
+# Use token on protected endpoints
+curl http://localhost:8788/clients/123 \
+  -H "Authorization: Bearer abc123..."
+```
+
+New accounts have `approved = false`. An admin must approve before protected endpoints are accessible:
+
+```sql
+UPDATE auth_user SET approved = true WHERE email = 'user@example.com';
+```
+
+Sessions don't expire automatically. Revoke by deleting from `auth_session`.
+
 ## Testing
 
 ```bash

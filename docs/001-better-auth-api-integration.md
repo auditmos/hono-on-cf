@@ -6,13 +6,13 @@ Replace the static `API_TOKEN` bearer auth in data-service with Better Auth sess
 
 ## Context & Background
 
-Current state:
-- `packages/data-ops` already has Better Auth configured (`src/auth/setup.ts`, `src/auth/server.ts`) with email+password, custom `approved` field, Drizzle adapter, and auth DB tables
-- `apps/data-service` uses `hono/bearer-auth` with a single `API_TOKEN` env var -- all clients share one static token
-- Auth middleware is applied per-route: `(c, next) => authMiddleware(c.env.API_TOKEN)(c, next)`
+Previous state:
+- `packages/data-ops` already had Better Auth configured (`src/auth/setup.ts`, `src/auth/server.ts`) with email+password, custom `approved` field, Drizzle adapter, and auth DB tables
+- `apps/data-service` used `hono/bearer-auth` with a single `API_TOKEN` env var — all clients shared one static token
+- Auth middleware was applied per-route: `(c, next) => authMiddleware(c.env.API_TOKEN)(c, next)`
 
 Problems with static token:
-- No per-user identity -- all requests look the same
+- No per-user identity — all requests look the same
 - Token rotation requires redeployment/secret update
 - No session expiry, revocation, or audit trail
 - Cannot implement user-scoped authorization
@@ -30,9 +30,37 @@ Problems with static token:
 - OAuth/social login providers (email+password only for now)
 - Role-based access control (future doc)
 - Frontend auth client integration (this is API-only)
-- Rate limiting on auth endpoints (already have rate-limiter middleware, can apply separately)
 
 ## Design
+
+### Auth Paths: Bearer vs Cookie
+
+| Path | Use case | How it works |
+|------|----------|--------------|
+| **Bearer** (server-to-server) | API clients, scripts, service integrations | Client stores session token; sends `Authorization: Bearer <token>` on each request; bearer plugin converts to internal cookie lookup |
+| **Cookie** (browser clients) | Web frontends | Browser sends `Cookie: better-auth.session_token=...` automatically; Better Auth reads it natively |
+
+**Guidance:**
+- Use bearer for server-to-server and API-client scenarios — token stored in env var or config
+- Use cookie for browser clients — Better Auth sets it on sign-in response, browser sends it automatically
+- Both paths hit the same session DB and use the same `getSession()` call — no code changes needed to support both simultaneously
+
+### Service Bindings Bypass
+
+Workers communicating via **Service Bindings** call RPC methods directly without HTTP. These calls **bypass all HTTP middleware including `requireAuth()`**. No auth is needed on RPC methods — the caller is a trusted Worker in the same Cloudflare account.
+
+```ts
+// Caller (another Worker via Service Binding)
+const result = await env.DATA_SERVICE.someRpcMethod(args)
+// No Authorization header — bypasses HTTP auth entirely
+
+// data-service RPC method — no requireAuth() needed
+async someRpcMethod(args: Args): Promise<Result> {
+  // called only by trusted service binding callers
+}
+```
+
+Only `fetch()` requests go through the Hono middleware chain.
 
 ### How Better Auth Works in API-Only Context
 
@@ -57,26 +85,28 @@ Hono middleware chain
   |-- requestId
   |-- onError
   |-- cors
+  |-- /api/auth/* --> rateLimiter (20 req/min per IP)
   |-- /api/auth/* --> Better Auth handler (sign-up, sign-in, sign-out, get-session)
   |-- /health/*   --> public (no auth)
-  |-- /clients/*  --> betterAuthMiddleware (GET public, mutations protected)
+  |-- /clients/   --> GET / public (no auth)
+  |-- /clients/*  --> requireAuth() (GET /:id, POST, PUT, DELETE)
 ```
 
 ### Worker Initialization
 
-`setAuth()` must be called in the worker constructor alongside `initDatabase()`, since Better Auth needs the Drizzle DB instance.
+`setAuth()` must be called in the worker constructor alongside `initDatabase()`. `setAuth()` has an **init guard** — if called again (e.g., from a second request hitting the same Worker instance), it returns the existing instance without reinitializing.
 
 ```ts
 // apps/data-service/src/index.ts
 import { WorkerEntrypoint } from "cloudflare:workers";
-import { initDatabase } from "@repo/data-ops/database/setup";
 import { setAuth } from "@repo/data-ops/auth/server";
+import { getDb, initDatabase } from "@repo/data-ops/database/setup";
 import { App } from "@/hono/app";
 
 export default class DataService extends WorkerEntrypoint<Env> {
   constructor(ctx: ExecutionContext, env: Env) {
     super(ctx, env);
-    const db = initDatabase({
+    initDatabase({
       host: env.DATABASE_HOST,
       username: env.DATABASE_USERNAME,
       password: env.DATABASE_PASSWORD,
@@ -85,25 +115,21 @@ export default class DataService extends WorkerEntrypoint<Env> {
       secret: env.BETTER_AUTH_SECRET,
       baseURL: env.BETTER_AUTH_URL,
       adapter: {
-        drizzleDb: db,
+        drizzleDb: getDb(),
         provider: "pg",
       },
     });
   }
-  // ... rest unchanged
+  // ...
 }
 ```
 
-`initDatabase()` returns the db instance (it already does -- see `database/setup.ts` line 8-12), so we can pass it directly to `setAuth()`.
+Note: `initDatabase()` sets the DB on a module-level variable; `getDb()` retrieves it. `setAuth()` then takes that instance.
 
-### Better Auth Setup Changes (data-ops)
-
-Add the bearer plugin to `createBetterAuth` in `packages/data-ops/src/auth/setup.ts`:
+### Better Auth Setup (data-ops)
 
 ```ts
-import { type BetterAuthOptions, betterAuth } from "better-auth";
-import { bearer } from "better-auth/plugins/bearer";
-
+// packages/data-ops/src/auth/setup.ts
 export const createBetterAuth = (config: {
   database: BetterAuthOptions["database"];
   secret?: BetterAuthOptions["secret"];
@@ -113,10 +139,8 @@ export const createBetterAuth = (config: {
     database: config.database,
     secret: config.secret,
     baseURL: config.baseURL,
-    emailAndPassword: {
-      enabled: true,
-    },
     plugins: [bearer()],
+    emailAndPassword: { enabled: true },
     user: {
       modelName: "auth_user",
       additionalFields: {
@@ -130,71 +154,58 @@ export const createBetterAuth = (config: {
     },
     session: {
       modelName: "auth_session",
+      expiresIn: 60 * 60 * 24 * 365 * 10, // 10 years — effectively no expiry
     },
-    verification: {
-      modelName: "auth_verification",
-    },
-    account: {
-      modelName: "auth_account",
-    },
+    verification: { modelName: "auth_verification" },
+    account: { modelName: "auth_account" },
   });
 };
 ```
 
-No schema changes needed -- bearer plugin has no additional tables.
+**Session policy:** Sessions are set to expire in 10 years — effectively permanent. Revocation is manual (see below). No automatic session rotation is expected. This simplifies server-to-server clients that can't handle token refreshes.
 
-### Mounting Auth Routes in Hono
+No schema changes needed for the bearer plugin.
 
-Better Auth exposes `auth.handler(request): Promise<Response>` which handles all `/api/auth/*` routes internally. Mount it as a catch-all in Hono:
+### Init Guard in setAuth
 
 ```ts
-// apps/data-service/src/hono/handlers/auth-handlers.ts
-import { getAuth } from "@repo/data-ops/auth/server";
-import { Hono } from "hono";
+// packages/data-ops/src/auth/server.ts
+let betterAuth: ReturnType<typeof createBetterAuth>;
 
-const auth = new Hono<{ Bindings: Env }>();
+export function setAuth(config: ...) {
+  if (betterAuth) return betterAuth; // guard: idempotent
+  betterAuth = createBetterAuth({ ... });
+  return betterAuth;
+}
 
-auth.all("/*", async (c) => {
-  const betterAuth = getAuth();
-  return betterAuth.handler(c.req.raw);
-});
-
-export default auth;
+export function getAuth() {
+  if (!betterAuth) throw new Error("Auth not initialized");
+  return betterAuth;
+}
 ```
+
+The guard makes `setAuth()` safe to call on every Worker constructor invocation without reinitializing or leaking instances across requests.
+
+### Rate Limiting on Auth Routes
+
+`/api/auth/*` is rate-limited at **20 requests/minute per IP** to prevent brute-force attacks:
 
 ```ts
 // apps/data-service/src/hono/app.ts
-import auth from "./handlers/auth-handlers";
-
-// Mount BEFORE other routes
+App.use("/api/auth/*", rateLimiter({ windowMs: 60_000, maxRequests: 20 }));
 App.route("/api/auth", auth);
-App.route("/health", health);
-App.route("/clients", clients);
 ```
 
-Better Auth expects its routes under `/api/auth` by default. The `baseURL` env var tells it the full origin (e.g., `http://localhost:8788`) so it can construct callback URLs. The route prefix `/api/auth` is Better Auth's default and does not need configuration.
+The rate limiter runs before the auth handler. Exceeded requests return `429 Too Many Requests`.
 
-### Auth Middleware Replacement
+### Auth Middleware (require-auth.ts)
 
-Replace `authMiddleware` (static token check) with a middleware that calls `auth.api.getSession()`:
+`requireAuth()` checks session validity **and** account approval in one middleware:
 
 ```ts
-// apps/data-service/src/hono/middleware/auth.ts
-import type { Context, MiddlewareHandler, Next } from "hono";
-import { getAuth } from "@repo/data-ops/auth/server";
-
-// Augment Hono context with session data
-declare module "hono" {
-  interface ContextVariableMap {
-    session: {
-      session: { id: string; userId: string; token: string; expiresAt: Date };
-      user: { id: string; email: string; name: string; approved: boolean };
-    };
-  }
-}
-
+// apps/data-service/src/hono/middleware/require-auth.ts
 export const requireAuth = (): MiddlewareHandler => {
-  return async (c: Context, next: Next) => {
+  return async (c, next) => {
     const auth = getAuth();
     const session = await auth.api.getSession({
       headers: c.req.raw.headers,
@@ -204,42 +215,87 @@ export const requireAuth = (): MiddlewareHandler => {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
+    if (!session.user.approved) {
+      return c.json({ error: "Account not approved" }, 403);
+    }
+
     c.set("session", session);
     await next();
   };
 };
 ```
 
-`auth.api.getSession()` accepts `{ headers }` -- it reads the session token from the `Authorization` header (via bearer plugin) or `Cookie` header, looks it up in the DB, and returns `{ session, user }` or `null`.
+- 401 = no valid session (missing/expired/invalid token)
+- 403 = valid session but `approved === false` (unapproved account)
 
-### Handler Changes
+After `requireAuth()` runs, `c.get("session")` provides typed `{ session, user }` data.
 
-Replace `authMiddleware(c.env.API_TOKEN)` with `requireAuth()`:
+### Mounting Auth Routes
+
+```ts
+// apps/data-service/src/hono/handlers/auth-handlers.ts
+auth.all("/*", async (c) => {
+  const betterAuth = getAuth();
+  return betterAuth.handler(c.req.raw);
+});
+```
+
+```ts
+// apps/data-service/src/hono/app.ts
+App.use("/api/auth/*", rateLimiter({ windowMs: 60_000, maxRequests: 20 }));
+App.route("/api/auth", auth);
+App.route("/health", health);
+App.route("/clients", clients);
+```
+
+### Public vs Protected Endpoint Examples
 
 ```ts
 // apps/data-service/src/hono/handlers/client-handlers.ts
-import { requireAuth } from "../middleware/auth";
 
-// Public: no auth
+// Public — no auth middleware
 clients.get("/", zValidator("query", PaginationRequestSchema), async (c) => {
   const query = c.req.valid("query");
   return resultToResponse(c, await clientService.getClients(query));
 });
 
-// Protected: requires session
-clients.post(
-  "/",
-  requireAuth(),
-  zValidator("json", ClientCreateRequestSchema),
-  async (c) => {
-    const { user } = c.get("session");
-    const data = c.req.valid("json");
-    return resultToResponse(c, await clientService.createClient(data), 201);
-  },
-);
+// Protected — requireAuth() before handler
+clients.get("/:id", requireAuth(), zValidator("param", IdParamSchema), async (c) => {
+  const { id } = c.req.valid("param");
+  return resultToResponse(c, await clientService.getClientById(id));
+});
+
+clients.post("/", requireAuth(), zValidator("json", ClientCreateRequestSchema), async (c) => {
+  const data = c.req.valid("json");
+  return resultToResponse(c, await clientService.createClient(data), 201);
+});
 ```
 
-Pattern: `requireAuth()` is a Hono middleware factory (no args needed, unlike the old `authMiddleware(token)`). After it runs, `c.get("session")` provides typed user+session data.
+Pattern: `GET /` (list) is public; `GET /:id`, mutations (`POST`, `PUT`, `DELETE`) require auth.
+
+### Manual Approval Flow
+
+New users have `approved = false` by default. Approval is a **direct DB operation** — no admin API endpoint:
+
+```sql
+UPDATE auth_user SET approved = true WHERE email = 'user@example.com';
+```
+
+Until approved, `requireAuth()` returns `403 Account not approved` even with a valid session. This prevents unapproved users from accessing protected endpoints without revoking their session.
+
+### Manual Session Revocation
+
+Sessions do not expire automatically (10-year TTL). To revoke a session:
+
+```sql
+-- Revoke specific session
+DELETE FROM auth_session WHERE token = '<session-token>';
+
+-- Revoke all sessions for a user
+DELETE FROM auth_session WHERE user_id = '<user-id>';
+```
+
+Revocation is immediate — the next request with that token will get `401 Unauthorized`. The user must sign in again to get a new session.
 
 ### Auth Endpoints (provided by Better Auth)
 
@@ -250,11 +306,11 @@ These are automatically available under `/api/auth/*`:
 | POST | `/api/auth/sign-up/email` | Register with `{ email, password, name }` |
 | POST | `/api/auth/sign-in/email` | Login, returns `{ session, user }` |
 | POST | `/api/auth/sign-out` | Invalidate session |
-| GET | `/api/auth/get-session` | Get current session (for validation) |
+| GET | `/api/auth/get-session` | Get current session |
 | POST | `/api/auth/list-sessions` | List active sessions for user |
-| POST | `/api/auth/revoke-session` | Revoke specific session |
+| POST | `/api/auth/revoke-session` | Revoke specific session via API |
 
-### Client Authentication Flow
+### Client Authentication Flow (Bearer)
 
 ```
 1. Sign up
@@ -262,44 +318,18 @@ These are automatically available under `/api/auth/*`:
    Body: { "email": "user@example.com", "password": "...", "name": "User" }
    Response: { "session": { "token": "abc123...", ... }, "user": { ... } }
 
-2. Store token client-side (env var, config, memory)
+2. (Admin approves the user)
+   UPDATE auth_user SET approved = true WHERE email = 'user@example.com';
 
-3. Make authenticated requests
-   GET /clients
+3. Store token (env var, config, secrets manager)
+
+4. Make authenticated requests
+   GET /clients/123
    Authorization: Bearer abc123...
 
-4. Sign out (optional -- or let session expire)
-   POST /api/auth/sign-out
-   Authorization: Bearer abc123...
-```
-
-### Sample: Public vs Protected Endpoint
-
-```ts
-// Public -- no middleware
-clients.get("/:id", zValidator("param", IdParamSchema), async (c) => {
-  const { id } = c.req.valid("param");
-  return resultToResponse(c, await clientService.getClientById(id));
-});
-
-// Protected -- requireAuth() middleware, session available on context
-clients.delete(
-  "/:id",
-  requireAuth(),
-  zValidator("param", IdParamSchema),
-  async (c) => {
-    const { id } = c.req.valid("param");
-    const { user } = c.get("session");
-    // user.id, user.email, user.approved available here
-    const result = await clientService.deleteClient(id);
-    if (!result.ok)
-      return c.json(
-        { error: result.error.message, code: result.error.code },
-        result.error.status as ContentfulStatusCode,
-      );
-    return c.body(null, 204);
-  },
-);
+5. Revoke when decommissioning
+   DELETE FROM auth_session WHERE token = 'abc123...';
+   -- or via API: POST /api/auth/sign-out with Authorization: Bearer abc123...
 ```
 
 ## Env Var Changes
@@ -315,78 +345,47 @@ clients.delete(
 
 | Var | Reason |
 |-----|--------|
-| `API_TOKEN` | Replaced by per-user sessions |
+| `API_TOKEN` | Replaced by per-user sessions — clean cutover, no dual operation |
 
-### Update worker-configuration.d.ts
+## Migration Path (Completed)
 
-After updating `.dev.vars`, run `pnpm run cf-typegen` to regenerate `Env`:
+The migration was done as a clean cutover — no dual-token phase:
 
-```ts
-interface Env {
-  // ... existing
-  BETTER_AUTH_SECRET: string;
-  BETTER_AUTH_URL: string;
-  // API_TOKEN removed
-}
-```
-
-## Migration Path
-
-### Phase 1: Add Better Auth alongside API_TOKEN
-
-1. Add `bearer()` plugin to `createBetterAuth` in data-ops
-2. Rebuild data-ops: `pnpm --filter @repo/data-ops build`
-3. Add `setAuth()` call to worker constructor
-4. Mount auth routes at `/api/auth`
-5. Add `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` to `.dev.vars`
-6. Create `requireAuth()` middleware (new file or replace existing)
-7. Keep `authMiddleware` working -- both can coexist temporarily
-
-### Phase 2: Switch endpoints
-
-1. Replace `authMiddleware(c.env.API_TOKEN)` with `requireAuth()` on each protected route
-2. Update CORS `allowHeaders` to include `Authorization` (already present)
-3. Test: sign up via `/api/auth/sign-up/email`, use returned token for protected endpoints
-
-### Phase 3: Cleanup
-
-1. Remove `API_TOKEN` from `.dev.vars`, `.staging.vars`, `.production.vars`
-2. Remove old `authMiddleware` function
-3. Run `pnpm run cf-typegen` to drop `API_TOKEN` from `Env`
-4. Remove `API_TOKEN` from `sync-secrets.sh` / Cloudflare dashboard
+1. Added `bearer()` plugin to `createBetterAuth` in data-ops
+2. Added `setAuth()` call to worker constructor (after `initDatabase()`)
+3. Mounted auth routes at `/api/auth` with 20/min rate limiter
+4. Added `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` env vars
+5. Replaced `authMiddleware(c.env.API_TOKEN)` with `requireAuth()` on all protected routes
+6. Removed `API_TOKEN` from all env files and Cloudflare dashboard secrets
 
 ## Security Considerations
 
-- `BETTER_AUTH_SECRET` must be unique per environment and kept secret -- it signs session tokens
-- Session tokens are opaque DB-backed tokens, not JWTs -- revocation is immediate (delete from `auth_session` table)
-- Bearer plugin does not encrypt tokens in transit -- always use HTTPS in staging/production
-- The `approved` field on `auth_user` defaults to `false` -- consider adding an approval check in `requireAuth()` if unapproved users should be blocked:
-
-```ts
-if (!session.user.approved) {
-  return c.json({ error: "Account not approved" }, 403);
-}
-```
-
-- Better Auth handles password hashing (bcrypt/argon2 via its internal crypto)
-- Rate limit `/api/auth/sign-in/email` to prevent brute force (apply `rateLimiter` middleware to auth routes)
+- `BETTER_AUTH_SECRET` must be unique per environment — it signs session tokens
+- Session tokens are opaque DB-backed tokens, not JWTs — revocation is immediate
+- Bearer plugin does not encrypt tokens in transit — always use HTTPS in staging/production
+- Better Auth handles password hashing internally (bcrypt/argon2)
+- `/api/auth/*` rate-limited at 20 req/min per IP to prevent brute force
+- `approved` field gates access — unapproved users get 403 even with valid sessions
 
 ## File Changes Summary
 
 | File | Change |
 |------|--------|
-| `packages/data-ops/src/auth/setup.ts` | Add `bearer()` plugin import + config |
-| `apps/data-service/src/index.ts` | Add `setAuth()` call in constructor |
-| `apps/data-service/src/hono/app.ts` | Mount auth route, remove old auth import |
-| `apps/data-service/src/hono/handlers/auth-handlers.ts` | **New** -- catch-all to Better Auth handler |
-| `apps/data-service/src/hono/middleware/auth.ts` | Replace `authMiddleware` with `requireAuth` |
-| `apps/data-service/src/hono/handlers/client-handlers.ts` | Switch to `requireAuth()` |
-| `apps/data-service/.dev.vars` | Add `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`; remove `API_TOKEN` |
+| `packages/data-ops/src/auth/setup.ts` | Added `bearer()` plugin; `session.expiresIn` = 10 years |
+| `packages/data-ops/src/auth/server.ts` | `setAuth()` init guard; `getAuth()` throw if uninitialized |
+| `apps/data-service/src/index.ts` | `setAuth()` call in constructor after `initDatabase()` + `getDb()` |
+| `apps/data-service/src/hono/app.ts` | Rate limiter on `/api/auth/*`; auth route mounted |
+| `apps/data-service/src/hono/handlers/auth-handlers.ts` | Catch-all delegating to Better Auth handler |
+| `apps/data-service/src/hono/middleware/require-auth.ts` | New — session check + approval check; replaces `authMiddleware` |
+| `apps/data-service/src/hono/handlers/client-handlers.ts` | `GET /` public; `GET /:id` + mutations use `requireAuth()` |
+| `apps/data-service/.dev.vars` | Added `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`; removed `API_TOKEN` |
 
-## Open Questions
+## Open Questions (Resolved)
 
-- Should GET endpoints (list/detail) require auth or stay public? Current design keeps them public matching existing behavior, but this is a policy decision.
-- Should `requireAuth()` also check `user.approved === true`? If so, need a separate `requireApproved()` or combine into one middleware with options.
-- Do we need an admin route to approve users, or is that a direct DB operation for now?
-- Session expiry/`updateAge` defaults from Better Auth are sensible (7 days / 1 day refresh) -- do we want to customize?
-- Should auth routes (`/api/auth/*`) have rate limiting applied, and at what thresholds?
+| Question | Resolution |
+|----------|------------|
+| Should GET endpoints require auth? | `GET /` (list) is public; `GET /:id` requires auth — matches use case where listing is discovery but detail access is gated |
+| Should `requireAuth()` check `user.approved`? | Yes — combined into `requireAuth()`, returns 403 if not approved |
+| Do we need an admin route to approve users? | No — direct DB operation (`UPDATE auth_user SET approved = true`) for now |
+| Session expiry — customize defaults? | Yes — set to 10 years (`expiresIn: 60*60*24*365*10`); effectively no expiry; revoke manually via `auth_session` deletion |
+| Rate limit auth routes? | Yes — 20 req/min per IP via `rateLimiter` middleware on `/api/auth/*` |
