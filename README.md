@@ -113,4 +113,7 @@ To pull latest brainstormer updates:
 
 ```bash
 git submodule update --remote plugins/brainstormer
+git add plugins/brainstormer
+git commit -m "update brainstormer"
+git push
 ```
