@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/auditmos/hono-on-cf/compare/v1.2.0...v1.3.0) (2026-03-18)
+
+
+### Features
+
+* **data-service:** protect GET /:id + add client handler tests ([7b98c52](https://github.com/auditmos/hono-on-cf/commit/7b98c526ae788e1a26321434cb0b953c5edaa1b9))
+
 # [1.2.0](https://github.com/auditmos/hono-on-cf/compare/v1.1.0...v1.2.0) (2026-03-18)
 
 
