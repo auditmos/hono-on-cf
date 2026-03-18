@@ -37,15 +37,10 @@ clients.get("/:id", zValidator("param", IdParamSchema), async (c) => {
 	return resultToResponse(c, await clientService.getClientById(id));
 });
 
-clients.post(
-	"/",
-	requireAuth(),
-	zValidator("json", ClientCreateRequestSchema),
-	async (c) => {
-		const data = c.req.valid("json");
-		return resultToResponse(c, await clientService.createClient(data), 201);
-	},
-);
+clients.post("/", requireAuth(), zValidator("json", ClientCreateRequestSchema), async (c) => {
+	const data = c.req.valid("json");
+	return resultToResponse(c, await clientService.createClient(data), 201);
+});
 
 clients.put(
 	"/:id",
@@ -59,20 +54,15 @@ clients.put(
 	},
 );
 
-clients.delete(
-	"/:id",
-	requireAuth(),
-	zValidator("param", IdParamSchema),
-	async (c) => {
-		const { id } = c.req.valid("param");
-		const result = await clientService.deleteClient(id);
-		if (!result.ok)
-			return c.json(
-				{ error: result.error.message, code: result.error.code },
-				result.error.status as ContentfulStatusCode,
-			);
-		return c.body(null, 204);
-	},
-);
+clients.delete("/:id", requireAuth(), zValidator("param", IdParamSchema), async (c) => {
+	const { id } = c.req.valid("param");
+	const result = await clientService.deleteClient(id);
+	if (!result.ok)
+		return c.json(
+			{ error: result.error.message, code: result.error.code },
+			result.error.status as ContentfulStatusCode,
+		);
+	return c.body(null, 204);
+});
 
 export default clients;

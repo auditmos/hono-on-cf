@@ -84,9 +84,7 @@ describe("auth handlers", () => {
 		const passedRequest = mockHandler.mock.calls[0]?.[0];
 		expect(passedRequest).toBeInstanceOf(Request);
 		expect(passedRequest.url).toContain("/api/auth/get-session");
-		expect(passedRequest.headers.get("Authorization")).toBe(
-			"Bearer test-token-123",
-		);
+		expect(passedRequest.headers.get("Authorization")).toBe("Bearer test-token-123");
 	});
 
 	it("preserves Better Auth error responses", async () => {
