@@ -3,7 +3,7 @@ import type { MiddlewareHandler } from "hono";
 
 type AuthSession = Awaited<ReturnType<ReturnType<typeof getAuth>["api"]["getSession"]>>;
 
-export type SessionData = NonNullable<AuthSession>;
+type SessionData = NonNullable<AuthSession>;
 
 declare module "hono" {
 	interface ContextVariableMap {
