@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/auditmos/hono-on-cf/compare/v1.5.0...v1.5.1) (2026-03-18)
+
+
+### Bug Fixes
+
+* **data-ops:** cap session expiresIn at 400 days to satisfy RFC 6265 cookie limit ([daac505](https://github.com/auditmos/hono-on-cf/commit/daac50508c73a1896aa3eb4db9071642584e243b))
+
 # [1.5.0](https://github.com/auditmos/hono-on-cf/compare/v1.4.0...v1.5.0) (2026-03-18)
 
 
