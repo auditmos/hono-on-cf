@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/auditmos/hono-on-cf/compare/v1.4.0...v1.5.0) (2026-03-18)
+
+
+### Features
+
+* **data-ops:** sign-out delegation + session no-expiry (closes [#7](https://github.com/auditmos/hono-on-cf/issues/7)) ([5c6e19e](https://github.com/auditmos/hono-on-cf/commit/5c6e19eef4e922c5b5adbc90867bd0d9e77289be))
+
 # [1.4.0](https://github.com/auditmos/hono-on-cf/compare/v1.3.0...v1.4.0) (2026-03-18)
 
 
