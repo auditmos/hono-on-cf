@@ -1,3 +1,10 @@
+## [1.5.2](https://github.com/auditmos/hono-on-cf/compare/v1.5.1...v1.5.2) (2026-04-01)
+
+
+### Bug Fixes
+
+* correct hardcoded service name in readiness endpoint ([af7a8e9](https://github.com/auditmos/hono-on-cf/commit/af7a8e9b3f3606ac2c73151f8d3c356b478f1e13))
+
 ## [1.5.1](https://github.com/auditmos/hono-on-cf/compare/v1.5.0...v1.5.1) (2026-03-18)
 
 
