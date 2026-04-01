@@ -1,7 +1,7 @@
 import { getAuth } from "@repo/data-ops/auth/server";
 import { Hono } from "hono";
 
-const auth = new Hono();
+const auth = new Hono<{ Bindings: Env }>();
 
 auth.all("/*", async (c) => {
 	const betterAuth = getAuth();
