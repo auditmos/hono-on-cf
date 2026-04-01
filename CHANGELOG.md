@@ -1,3 +1,10 @@
+## [1.5.3](https://github.com/auditmos/hono-on-cf/compare/v1.5.2...v1.5.3) (2026-04-01)
+
+
+### Bug Fixes
+
+* add missing .defaultNow() on auth_session and auth_account updatedAt ([ce81a3c](https://github.com/auditmos/hono-on-cf/commit/ce81a3c56ef330d122328bf244a8a2e2cdd672dc))
+
 ## [1.5.2](https://github.com/auditmos/hono-on-cf/compare/v1.5.1...v1.5.2) (2026-04-01)
 
 
