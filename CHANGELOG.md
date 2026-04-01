@@ -1,3 +1,10 @@
+## [1.5.4](https://github.com/auditmos/hono-on-cf/compare/v1.5.3...v1.5.4) (2026-04-01)
+
+
+### Bug Fixes
+
+* add Bindings type to auth-handlers Hono instance and use numeric separator in health-handlers ([b546691](https://github.com/auditmos/hono-on-cf/commit/b5466917425127dccf877aa749867a395f8c14d2))
+
 ## [1.5.3](https://github.com/auditmos/hono-on-cf/compare/v1.5.2...v1.5.3) (2026-04-01)
 
 
