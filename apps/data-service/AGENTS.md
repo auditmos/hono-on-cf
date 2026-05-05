@@ -86,10 +86,9 @@ clients.post("/", requireAuth(), zValidator(...), handler)
 ## Dev
 
 ```bash
-pnpm run dev              # local dev server
-pnpm run deploy:dev       # deploy to dev
-pnpm run deploy:staging   # deploy to staging
-pnpm run deploy:prod      # deploy to production
+pnpm run dev                # local dev server (port 8788)
+pnpm run deploy:staging     # wrangler deploy --env staging
+pnpm run deploy:production  # wrangler deploy --env production
 ```
 
 ## Env vars
