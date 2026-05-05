@@ -1,6 +1,19 @@
 # Hono-on-CF
 
+*AI agent index: [llms.txt](./llms.txt)*
+
 Modular API template on Cloudflare Workers.
+
+## Using this Template
+
+1. Click **Use this template** on GitHub (or `gh repo create --template`).
+2. Rename the worker in `apps/data-service/wrangler.jsonc` (`name`) and `apps/data-service/package.json` (`name`).
+3. Provision a Neon database and fill in `packages/data-ops/.env.dev` (see [.env.example](./packages/data-ops/.env.example)) and `apps/data-service/.dev.vars`.
+4. Run `pnpm run setup && pnpm run db:migrate:dev`.
+5. Start dev: `pnpm run dev:data-service` (port 8788).
+6. Delete the example `client` domain (`packages/data-ops/src/client/`, `apps/data-service/src/hono/handlers/client-handlers.ts` + related service/test) when you no longer need the demo, and start modelling your own domain.
+
+See [Setup](#setup) and [Deployment](#deployment) below for the full dev/deploy loop.
 
 ## Architecture
 
