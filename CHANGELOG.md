@@ -1,3 +1,5 @@
+## [1.5.5](https://github.com/auditmos/hono-on-cf/compare/v1.5.4...v1.5.5) (2026-05-05)
+
 ## [1.5.4](https://github.com/auditmos/hono-on-cf/compare/v1.5.3...v1.5.4) (2026-04-01)
 
 
