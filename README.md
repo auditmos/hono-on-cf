@@ -7,11 +7,12 @@ Modular API template on Cloudflare Workers.
 ## Using this Template
 
 1. Click **Use this template** on GitHub (or `gh repo create --template`).
-2. Rename the worker in `apps/data-service/wrangler.jsonc` (`name`) and `apps/data-service/package.json` (`name`).
-3. Provision a Neon database and fill in `packages/data-ops/.env.dev` (see [.env.example](./packages/data-ops/.env.example)) and `apps/data-service/.dev.vars`.
-4. Run `pnpm run setup && pnpm run db:migrate:dev`.
-5. Start dev: `pnpm run dev:data-service` (port 8788).
-6. Delete the example `client` domain (`packages/data-ops/src/client/`, `apps/data-service/src/hono/handlers/client-handlers.ts` + related service/test) when you no longer need the demo, and start modelling your own domain.
+2. `pnpm install`.
+3. `pnpm run init-project` — prompts for a kebab-case project name, renames `apps/data-service/wrangler.jsonc` + root `package.json`, and fans out the `*.example` templates into per-env files (`apps/data-service/.{dev,staging,production}.vars`, `packages/data-ops/.env.{dev,staging,production}`). Idempotent — re-runnable, never overwrites filled-in files. The script's "Next steps" output lists every field that still needs a value.
+4. Provision a Neon database and fill `DATABASE_HOST/USERNAME/PASSWORD` in the env files created above. Set `BETTER_AUTH_SECRET` (`openssl rand -base64 32`) and `BETTER_AUTH_URL` per environment in `apps/data-service/.{dev,staging,production}.vars`.
+5. Run `pnpm run setup && pnpm run db:generate:dev && pnpm run db:migrate:dev`.
+6. Start dev: `pnpm run dev:data-service` (port 8788).
+7. *(Optional, when you're done with the demo)* delete the example `client` domain: `packages/data-ops/src/client/`, `apps/data-service/src/hono/handlers/client-handlers.ts` + matching service/test. Then start modelling your own domain.
 
 See [Setup](#setup) and [Deployment](#deployment) below for the full dev/deploy loop.
 
