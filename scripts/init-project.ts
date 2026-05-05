@@ -1,13 +1,75 @@
+#!/usr/bin/env tsx
+/**
+ * One-shot project bootstrap. Idempotent — safe to re-run.
+ *
+ * 1. Prompt once for kebab-case project name.
+ * 2. Rename root package.json + apps/data-service/wrangler.jsonc (skip if already renamed).
+ * 3. Warn if wrangler.jsonc lacks env.staging / env.production blocks.
+ * 4. Fan out *.example templates into per-environment files (skip if exists).
+ * 5. Print a next-steps checklist.
+ */
+
 import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const ORIGINAL_PKG_NAME = "hono-on-cf";
 
-// ── Helpers ──────────────────────────────────────────────────────────
+type RenameTarget =
+	| { file: string; mode: "package-name" }
+	| { file: string; mode: "all-occurrences"; needle: string };
+type EnvTemplate = { template: string; targets: string[] };
+type RenameResult = "renamed" | "skipped" | "missing";
+type FanoutResult = "copied" | "skipped" | "no-template";
 
-function prompt(question: string): Promise<string> {
+const RENAME_TARGETS: RenameTarget[] = [
+	{ file: "package.json", mode: "package-name" },
+	{ file: "apps/data-service/wrangler.jsonc", mode: "all-occurrences", needle: ORIGINAL_PKG_NAME },
+];
+
+const ENV_TEMPLATES: EnvTemplate[] = [
+	{
+		template: "apps/data-service/.example.vars",
+		targets: [
+			"apps/data-service/.dev.vars",
+			"apps/data-service/.staging.vars",
+			"apps/data-service/.production.vars",
+		],
+	},
+	{
+		template: "packages/data-ops/.env.example",
+		targets: [
+			"packages/data-ops/.env.dev",
+			"packages/data-ops/.env.staging",
+			"packages/data-ops/.env.production",
+		],
+	},
+];
+
+const WRANGLER_FILES = ["apps/data-service/wrangler.jsonc"];
+const REQUIRED_WRANGLER_ENVS = ["staging", "production"];
+
+const NEXT_STEPS = [
+	"Fill DB credentials in apps/data-service/.{dev,staging,production}.vars",
+	"  and packages/data-ops/.env.{dev,staging,production}",
+	"  Get from https://console.neon.tech (DATABASE_HOST/USERNAME/PASSWORD).",
+	"Set BETTER_AUTH_SECRET in apps/data-service/.{dev,staging,production}.vars",
+	"  Generate with: openssl rand -base64 32",
+	"Set BETTER_AUTH_URL to the deployed data-service URL per env.",
+	"(optional) Delete the example `client` domain when ready — see README Step 6.",
+	"Run migrations: pnpm run setup && pnpm run db:generate:dev && pnpm run db:migrate:dev",
+	"Start dev: pnpm run dev:data-service",
+];
+
+// ── helpers ──────────────────────────────────────────────────────────
+
+function abs(...segments: string[]): string {
+	return path.join(ROOT, ...segments);
+}
+
+async function prompt(question: string): Promise<string> {
 	const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 	return new Promise((resolve) => {
 		rl.question(question, (answer) => {
@@ -17,142 +79,128 @@ function prompt(question: string): Promise<string> {
 	});
 }
 
-function abs(...segments: string[]): string {
-	return path.join(ROOT, ...segments);
+function readJson<T = unknown>(file: string): T {
+	return JSON.parse(fs.readFileSync(file, "utf-8")) as T;
 }
 
-function replaceInFile(filePath: string, search: string | RegExp, replacement: string) {
-	const content = fs.readFileSync(filePath, "utf-8");
-	fs.writeFileSync(filePath, content.replace(search, replacement), "utf-8");
+function writeJson(file: string, value: unknown): void {
+	fs.writeFileSync(file, `${JSON.stringify(value, null, "\t")}\n`, "utf-8");
 }
 
-function replaceAllInFile(filePath: string, search: string, replacement: string) {
-	const content = fs.readFileSync(filePath, "utf-8");
-	fs.writeFileSync(filePath, content.replaceAll(search, replacement), "utf-8");
+function renamePackageJson(file: string, name: string): "renamed" | "skipped" {
+	const pkg = readJson<{ name?: string }>(file);
+	if (pkg.name === name) return "skipped";
+	pkg.name = name;
+	writeJson(file, pkg);
+	return "renamed";
 }
 
-function rmDir(dirPath: string) {
-	if (fs.existsSync(dirPath)) {
-		fs.rmSync(dirPath, { recursive: true, force: true });
+function renameAllOccurrences(file: string, name: string, needle: string): "renamed" | "skipped" {
+	const content = fs.readFileSync(file, "utf-8");
+	const replaced = content.replaceAll(needle, name);
+	if (replaced === content) return "skipped";
+	fs.writeFileSync(file, replaced, "utf-8");
+	return "renamed";
+}
+
+function applyRename(target: RenameTarget, name: string): RenameResult {
+	const file = abs(target.file);
+	if (!fs.existsSync(file)) return "missing";
+	if (target.mode === "package-name") return renamePackageJson(file, name);
+	return renameAllOccurrences(file, name, target.needle);
+}
+
+function stripJsonc(content: string): string {
+	return content.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+}
+
+function checkWranglerEnvs(file: string, required: string[]): string[] {
+	if (!fs.existsSync(file)) return [`${file}: file not found`];
+	let parsed: { env?: Record<string, unknown> };
+	try {
+		parsed = JSON.parse(stripJsonc(fs.readFileSync(file, "utf-8"))) as {
+			env?: Record<string, unknown>;
+		};
+	} catch (e) {
+		return [`${file}: parse failed (${(e as Error).message.split("\n")[0]})`];
+	}
+	const envs = parsed.env ?? {};
+	return required.filter((e) => !envs[e]).map((e) => `${file}: missing env.${e}`);
+}
+
+function fanoutEnv(template: string, target: string): FanoutResult {
+	const templatePath = abs(template);
+	const targetPath = abs(target);
+	if (!fs.existsSync(templatePath)) return "no-template";
+	if (fs.existsSync(targetPath)) return "skipped";
+	fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+	fs.copyFileSync(templatePath, targetPath);
+	return "copied";
+}
+
+function symbolFor(result: RenameResult | FanoutResult): string {
+	if (result === "renamed" || result === "copied") return "✓";
+	if (result === "skipped") return "·";
+	return "✗";
+}
+
+// ── steps ────────────────────────────────────────────────────────────
+
+function stepRename(name: string): void {
+	console.log("[1/4] Rename project references");
+	for (const target of RENAME_TARGETS) {
+		const result = applyRename(target, name);
+		console.log(`      ${symbolFor(result)} ${target.file} (${result})`);
 	}
 }
 
-function rmFile(filePath: string) {
-	if (fs.existsSync(filePath)) {
-		fs.unlinkSync(filePath);
+function stepVerifyWrangler(): void {
+	console.log("\n[2/4] Verify wrangler env blocks");
+	const warnings = WRANGLER_FILES.flatMap((w) => checkWranglerEnvs(abs(w), REQUIRED_WRANGLER_ENVS));
+	if (warnings.length === 0) {
+		console.log(`      ✓ all wrangler.jsonc declare ${REQUIRED_WRANGLER_ENVS.join(", ")}`);
+		return;
+	}
+	for (const w of warnings) console.log(`      ⚠ ${w}`);
+	console.log("      (warn-only — script does not modify wrangler structure)");
+}
+
+function stepFanoutEnv(): void {
+	console.log("\n[3/4] Create per-environment env files");
+	for (const { template, targets } of ENV_TEMPLATES) {
+		for (const target of targets) {
+			const result = fanoutEnv(template, target);
+			const detail = result === "copied" ? `from ${template}` : result;
+			console.log(`      ${symbolFor(result)} ${target} (${detail})`);
+		}
 	}
 }
 
-// ── Main ─────────────────────────────────────────────────────────────
+function stepNextSteps(name: string): void {
+	console.log("\n[4/4] Next steps:\n");
+	for (const step of NEXT_STEPS) console.log(`  ${step}`);
+	console.log(
+		`\n✓ Project "${name}" initialized. Re-run anytime — already-applied steps are skipped.`,
+	);
+}
 
-async function main() {
+// ── main ─────────────────────────────────────────────────────────────
+
+async function main(): Promise<void> {
 	const name = await prompt("Project name (kebab-case): ");
-
 	if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(name)) {
-		console.error("Invalid name. Must be kebab-case (e.g. my-app).");
+		console.error("✗ Invalid name. Must be kebab-case (e.g. my-app).");
 		process.exit(1);
 	}
 
-	console.log(`\nInitializing project: ${name}\n`);
-
-	// ── Step 1: Rename project references ────────────────────────────
-
-	console.log("[1/6] Renaming project references...");
-
-	replaceAllInFile(abs("apps/data-service/wrangler.jsonc"), "hono-on-cf", name);
-	replaceInFile(abs("package.json"), `"name": "hono-on-cf"`, `"name": "${name}"`);
-
-	// ── Step 2: Delete client domain (data-ops) ──────────────────────
-
-	console.log("[2/6] Deleting client domain from data-ops...");
-	rmDir(abs("packages/data-ops/src/client"));
-
-	const dataOpsPackagePath = abs("packages/data-ops/package.json");
-	const dataOpsPkg = JSON.parse(fs.readFileSync(dataOpsPackagePath, "utf-8"));
-	delete dataOpsPkg.exports["./client"];
-	fs.writeFileSync(dataOpsPackagePath, `${JSON.stringify(dataOpsPkg, null, "\t")}\n`, "utf-8");
-
-	for (const cfg of [
-		"drizzle-dev.config.ts",
-		"drizzle-staging.config.ts",
-		"drizzle-production.config.ts",
-	]) {
-		replaceInFile(
-			abs(`packages/data-ops/${cfg}`),
-			`schema: ["./src/drizzle/auth-schema.ts", "./src/client/table.ts", "./src/drizzle/relations.ts"],`,
-			`schema: ["./src/drizzle/auth-schema.ts", "./src/drizzle/relations.ts"],`,
-		);
-	}
-
-	// ── Step 3: Delete migrations ────────────────────────────────────
-
-	console.log("[3/6] Deleting migrations...");
-	rmDir(abs("packages/data-ops/src/drizzle/migrations/dev"));
-	rmDir(abs("packages/data-ops/src/drizzle/migrations/staging"));
-	rmDir(abs("packages/data-ops/src/drizzle/migrations/production"));
-
-	// ── Step 4: Clean seed file ──────────────────────────────────────
-
-	console.log("[4/6] Cleaning seed file...");
-	fs.writeFileSync(
-		abs("packages/data-ops/src/database/seed/seed.ts"),
-		`import { sql } from "drizzle-orm";
-import { initDatabase } from "../setup";
-
-async function seedDb() {
-	const db = initDatabase({
-		host: process.env.DATABASE_HOST!,
-		username: process.env.DATABASE_USERNAME!,
-		password: process.env.DATABASE_PASSWORD!,
-	});
-	await db.execute(sql\`SELECT 1\`);
-	// Add seed data here
-	process.exit(0);
+	console.log(`\n→ Initializing project: ${name}\n`);
+	stepRename(name);
+	stepVerifyWrangler();
+	stepFanoutEnv();
+	stepNextSteps(name);
 }
 
-seedDb().catch(() => {
+main().catch((err) => {
+	console.error(err);
 	process.exit(1);
 });
-`,
-		"utf-8",
-	);
-
-	// ── Step 5: Clean data-service ──────────────────────────────────
-
-	console.log("[5/6] Cleaning data-service...");
-	rmFile(abs("apps/data-service/src/hono/handlers/client-handlers.ts"));
-	rmFile(abs("apps/data-service/src/hono/services/client-service.ts"));
-
-	const appTsPath = abs("apps/data-service/src/hono/app.ts");
-	let appTs = fs.readFileSync(appTsPath, "utf-8");
-	appTs = appTs.replace(`import clients from "./handlers/client-handlers";\n`, "");
-	appTs = appTs.replace(`\nApp.route("/clients", clients);`, "");
-	fs.writeFileSync(appTsPath, appTs, "utf-8");
-
-	// ── Step 6: Self-destruct ───────────────────────────────────────
-
-	console.log("[6/6] Cleaning up init script...");
-
-	const rootPkgPath = abs("package.json");
-	const rootPkg = JSON.parse(fs.readFileSync(rootPkgPath, "utf-8"));
-	delete rootPkg.scripts["init-project"];
-	fs.writeFileSync(rootPkgPath, `${JSON.stringify(rootPkg, null, "\t")}\n`, "utf-8");
-
-	fs.unlinkSync(abs("scripts/init-project.ts"));
-
-	try {
-		fs.rmdirSync(abs("scripts"));
-	} catch {
-		// not empty, leave it
-	}
-
-	console.log(`\n✅ Project "${name}" initialized!\n`);
-	console.log("Next steps:");
-	console.log("  1. Configure env files (see .env examples):");
-	console.log("     - packages/data-ops/.env.dev");
-	console.log("     - apps/data-service/.dev.vars");
-	console.log("  2. Run drizzle migrations: pnpm run db:generate:dev && pnpm run db:migrate:dev");
-	console.log("  3. pnpm run dev:data-service");
-}
-
-main();
