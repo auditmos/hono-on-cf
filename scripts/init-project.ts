@@ -152,7 +152,7 @@ seedDb().catch(() => {
 	console.log("     - packages/data-ops/.env.dev");
 	console.log("     - apps/data-service/.dev.vars");
 	console.log(
-		"  2. Run drizzle migrations: pnpm --filter data-ops drizzle:dev:generate && pnpm --filter data-ops drizzle:dev:migrate",
+		"  2. Run drizzle migrations: pnpm run db:generate:dev && pnpm run db:migrate:dev",
 	);
 	console.log("  3. pnpm run dev:data-service");
 }
