@@ -1,4 +1,4 @@
-interface ExampleWorkflowParmas {
+interface ExampleWorkflowParams {
 	dataToPassIn;
 }
 
