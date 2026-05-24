@@ -1,3 +1,10 @@
+## [1.5.10](https://github.com/auditmos/hono-on-cf/compare/v1.5.9...v1.5.10) (2026-05-24)
+
+
+### Bug Fixes
+
+* **data-service:** fail fast when ALLOWED_ORIGINS missing in non-dev ([7d3faa0](https://github.com/auditmos/hono-on-cf/commit/7d3faa041fab729b4cc70d6ceda3468fe7f2ab81)), closes [#26](https://github.com/auditmos/hono-on-cf/issues/26)
+
 ## [1.5.9](https://github.com/auditmos/hono-on-cf/compare/v1.5.8...v1.5.9) (2026-05-24)
 
 
