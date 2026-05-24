@@ -1,3 +1,10 @@
+## [1.5.7](https://github.com/auditmos/hono-on-cf/compare/v1.5.6...v1.5.7) (2026-05-24)
+
+
+### Bug Fixes
+
+* **data-ops:** URL-encode DB credentials in connection strings ([#23](https://github.com/auditmos/hono-on-cf/issues/23)) ([25c4dc1](https://github.com/auditmos/hono-on-cf/commit/25c4dc104cc1bc7e12dbbb7acdd677e47a3a080e))
+
 ## [1.5.6](https://github.com/auditmos/hono-on-cf/compare/v1.5.5...v1.5.6) (2026-05-24)
 
 
