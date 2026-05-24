@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { ApiError, createErrorResponse, isError } from "../utils/error-handling";
+import { createErrorResponse, isError } from "../utils/error-handling";
 
 function toContentfulStatusCode(code: number): ContentfulStatusCode {
 	if (code >= 400 && code <= 599) return code as ContentfulStatusCode;
@@ -41,10 +41,6 @@ export async function onErrorHandler(err: unknown, c: Context) {
 	}
 
 	c.header("x-request-id", requestId);
-
-	if (err instanceof ApiError) {
-		return c.json(createErrorResponse(err), toContentfulStatusCode(err.statusCode));
-	}
 
 	if (isError(err)) {
 		return c.json(createErrorResponse(err), 500);

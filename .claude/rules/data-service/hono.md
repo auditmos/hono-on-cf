@@ -85,26 +85,10 @@ const data = UserCreateSchema.parse(body)
 
 ## Error Handling
 
-- Use custom `ApiError` class
-- Centralize via error middleware
-- Return consistent error shapes
-
-```ts
-class ApiError extends Error {
-  constructor(public statusCode: number, message: string) {
-    super(message)
-  }
-}
-
-// In middleware
-app.onError((err, c) => {
-  if (err instanceof ApiError) {
-    return c.json({ error: err.message }, err.statusCode)
-  }
-  console.error(err)
-  return c.json({ error: 'Internal error' }, 500)
-})
-```
+- Services return `Result<T>` (see `error-handling.md`) — never throw
+- Handlers map `Result<T>` to responses via the local `resultToResponse` helper
+- For middleware short-circuits (auth, rate limit, validation), throw `HTTPException` from `hono/http-exception` — the global `onErrorHandler` formats it
+- Don't introduce a new error class; the two surfaces above cover every case in this service
 
 ## Response Patterns
 
