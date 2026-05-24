@@ -7,7 +7,9 @@ export function initDatabase(connection: { host: string; username: string; passw
 	if (db) {
 		return db;
 	}
-	const connectionString = `postgres://${connection.username}:${connection.password}@${connection.host}`;
+	const username = encodeURIComponent(connection.username);
+	const password = encodeURIComponent(connection.password);
+	const connectionString = `postgres://${username}:${password}@${connection.host}`;
 	db = drizzle(connectionString);
 	return db;
 }
