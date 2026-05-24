@@ -37,4 +37,19 @@ describe("initDatabase", () => {
 		const connectionString = vi.mocked(drizzle).mock.calls[0]?.[0] as string;
 		expect(connectionString).toContain(host);
 	});
+
+	it("passes schema (auth tables + relations) to drizzle so db.query.* is available", async () => {
+		const { initDatabase } = await import("./setup");
+
+		initDatabase({ host: "h", username: "u", password: "p" });
+
+		const options = vi.mocked(drizzle).mock.calls[0]?.[1] as { schema?: Record<string, unknown> };
+		expect(options).toBeDefined();
+		expect(options.schema).toBeDefined();
+		const schema = options.schema as Record<string, unknown>;
+		expect(schema.auth_user).toBeDefined();
+		expect(schema.auth_session).toBeDefined();
+		expect(schema.userRelations).toBeDefined();
+		expect(schema.sessionRelations).toBeDefined();
+	});
 });
