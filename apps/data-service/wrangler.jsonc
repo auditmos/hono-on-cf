@@ -5,7 +5,19 @@
 	"compatibility_date": "2025-04-01",
 	"compatibility_flags": ["nodejs_compat"],
 	"observability": {
-		"enabled": true
+		// Workers Logs: 100% sampling initially so we see every event while traffic is low.
+		// Dial down to ~0.1 (10%) once volume becomes expensive — pricing kicks in past the
+		// free tier of 200k events/day. Ref: https://developers.cloudflare.com/workers/platform/pricing/#workers-logs
+		"logs": {
+			"enabled": true,
+			"head_sampling_rate": 1
+		},
+		// Distributed traces sample at 1% — traces are far more expensive per event than logs.
+		// Bump temporarily (e.g. 0.1) when actively debugging latency or fan-out issues.
+		"traces": {
+			"enabled": true,
+			"head_sampling_rate": 0.01
+		}
 	},
 	// "triggers": {
 	//   "crons": [

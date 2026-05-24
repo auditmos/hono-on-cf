@@ -73,6 +73,7 @@
 			"!**/node_modules",
 			"!**/dist",
 			"!**/.cache",
+			"!**/.wrangler",
 			"!**/*.tsbuildinfo",
 			"!**/worker-configuration.d.ts",
 			"!packages/data-ops/src/drizzle/migrations",
