@@ -2,11 +2,13 @@ import { WorkerEntrypoint } from "cloudflare:workers";
 import { setAuth } from "@repo/data-ops/auth/server";
 import { getDb, initDatabase } from "@repo/data-ops/database/setup";
 import { App } from "@/hono/app";
+import { assertCorsConfig } from "@/hono/middleware/cors";
 import { handleScheduled } from "./scheduled";
 
 export default class DataService extends WorkerEntrypoint<Env> {
 	constructor(ctx: ExecutionContext, env: Env) {
 		super(ctx, env);
+		assertCorsConfig(env);
 		initDatabase({
 			host: env.DATABASE_HOST,
 			username: env.DATABASE_USERNAME,

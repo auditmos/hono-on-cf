@@ -1,6 +1,13 @@
 import type { Context, Next } from "hono";
 import { cors } from "hono/cors";
 
+export const assertCorsConfig = (env: Env): void => {
+	if (env.CLOUDFLARE_ENV === "dev") return;
+	if (!env.ALLOWED_ORIGINS?.trim()) {
+		throw new Error(`ALLOWED_ORIGINS must be set when CLOUDFLARE_ENV is "${env.CLOUDFLARE_ENV}"`);
+	}
+};
+
 const getAllowedOrigins = (env: Env): string[] => {
 	if (env.CLOUDFLARE_ENV === "dev") {
 		return ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"];
