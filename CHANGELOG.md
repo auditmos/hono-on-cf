@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/auditmos/hono-on-cf/compare/v1.5.11...v1.6.0) (2026-05-24)
+
+
+### Features
+
+* **data-ops:** wire auth_user ↔ auth_session relations and pass schema to initDatabase ([3ce5992](https://github.com/auditmos/hono-on-cf/commit/3ce599205b8b9f1d9dbb776b5aca7b8fd2ecb494)), closes [#30](https://github.com/auditmos/hono-on-cf/issues/30)
+
 ## [1.5.11](https://github.com/auditmos/hono-on-cf/compare/v1.5.10...v1.5.11) (2026-05-24)
 
 ## [1.5.10](https://github.com/auditmos/hono-on-cf/compare/v1.5.9...v1.5.10) (2026-05-24)
