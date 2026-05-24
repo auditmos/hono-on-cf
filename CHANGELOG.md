@@ -1,3 +1,10 @@
+## [1.5.8](https://github.com/auditmos/hono-on-cf/compare/v1.5.7...v1.5.8) (2026-05-24)
+
+
+### Bug Fixes
+
+* **data-service:** drop unwired example scaffolding ([#24](https://github.com/auditmos/hono-on-cf/issues/24)) ([4690762](https://github.com/auditmos/hono-on-cf/commit/469076284f0081a47339f754a66eb6334a4ce161))
+
 ## [1.5.7](https://github.com/auditmos/hono-on-cf/compare/v1.5.6...v1.5.7) (2026-05-24)
 
 
