@@ -13,7 +13,7 @@ health.get("/live", (c) => {
 	return c.json(response);
 });
 
-health.get("/ready", rateLimiter("RATE_LIMIT_HEALTH"), async (c) => {
+health.get("/ready", rateLimiter("RATE_LIMIT_HEALTH", { windowSeconds: 60 }), async (c) => {
 	const dbStatus = await checkDatabase();
 	const response: ReadinessResponse = {
 		status: dbStatus === "connected" ? "ok" : "degraded",

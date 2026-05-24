@@ -33,7 +33,7 @@ const req = (app: Hono<{ Bindings: StubEnv }>, env: StubEnv, ip: string) =>
 describe("rateLimiter", () => {
 	it("returns 429 when the binding reports the request was over-limit", async () => {
 		const env: StubEnv = { RATE_LIMIT_AUTH: makeBinding(2) };
-		const app = makeApp(rateLimiter("RATE_LIMIT_AUTH"));
+		const app = makeApp(rateLimiter("RATE_LIMIT_AUTH", { windowSeconds: 60 }));
 
 		await req(app, env, "10.0.0.1");
 		await req(app, env, "10.0.0.1");
@@ -45,7 +45,7 @@ describe("rateLimiter", () => {
 
 	it("allows requests the binding accepts", async () => {
 		const env: StubEnv = { RATE_LIMIT_AUTH: makeBinding(3) };
-		const app = makeApp(rateLimiter("RATE_LIMIT_AUTH"));
+		const app = makeApp(rateLimiter("RATE_LIMIT_AUTH", { windowSeconds: 60 }));
 
 		const r1 = await req(app, env, "10.0.0.2");
 		const r2 = await req(app, env, "10.0.0.2");
@@ -58,7 +58,7 @@ describe("rateLimiter", () => {
 
 	it("different IPs are rate-limited independently", async () => {
 		const env: StubEnv = { RATE_LIMIT_AUTH: makeBinding(2) };
-		const app = makeApp(rateLimiter("RATE_LIMIT_AUTH"));
+		const app = makeApp(rateLimiter("RATE_LIMIT_AUTH", { windowSeconds: 60 }));
 
 		await req(app, env, "10.0.0.3");
 		await req(app, env, "10.0.0.3");
@@ -71,7 +71,7 @@ describe("rateLimiter", () => {
 	it("resets after window expires", async () => {
 		vi.useFakeTimers();
 		const env: StubEnv = { RATE_LIMIT_AUTH: makeBinding(2) };
-		const app = makeApp(rateLimiter("RATE_LIMIT_AUTH"));
+		const app = makeApp(rateLimiter("RATE_LIMIT_AUTH", { windowSeconds: 60 }));
 
 		await req(app, env, "10.0.0.5");
 		await req(app, env, "10.0.0.5");
@@ -87,11 +87,28 @@ describe("rateLimiter", () => {
 	it("calls the binding with the connecting IP as the key", async () => {
 		const limit = vi.fn<LimitFn>(async () => ({ success: true }));
 		const env: StubEnv = { RATE_LIMIT_AUTH: { limit } };
-		const app = makeApp(rateLimiter("RATE_LIMIT_AUTH"));
+		const app = makeApp(rateLimiter("RATE_LIMIT_AUTH", { windowSeconds: 60 }));
 
 		await req(app, env, "10.0.0.6");
 
 		expect(limit).toHaveBeenCalledWith({ key: "10.0.0.6" });
+	});
+
+	it("sets Retry-After header on 429 with seconds matching the configured window", async () => {
+		const windowSeconds = 45;
+		const env: StubEnv = { RATE_LIMIT_AUTH: makeBinding(1, windowSeconds * 1000) };
+		const app = makeApp(rateLimiter("RATE_LIMIT_AUTH", { windowSeconds }));
+
+		await req(app, env, "10.0.0.8");
+		const res = await req(app, env, "10.0.0.8");
+
+		expect(res.status).toBe(429);
+		const retryAfter = res.headers.get("Retry-After");
+		expect(retryAfter).not.toBeNull();
+		const parsed = Number(retryAfter);
+		expect(Number.isInteger(parsed)).toBe(true);
+		expect(parsed).toBeGreaterThan(0);
+		expect(parsed).toBeLessThanOrEqual(windowSeconds);
 	});
 
 	it("survives module-cache eviction (state lives on the env binding, not the module)", async () => {
@@ -100,14 +117,14 @@ describe("rateLimiter", () => {
 		const env: StubEnv = { RATE_LIMIT_AUTH: makeBinding(2) };
 
 		const first = await import("./rate-limiter");
-		const app1 = makeApp(first.rateLimiter("RATE_LIMIT_AUTH"));
+		const app1 = makeApp(first.rateLimiter("RATE_LIMIT_AUTH", { windowSeconds: 60 }));
 		await req(app1, env, "10.0.0.7");
 		await req(app1, env, "10.0.0.7");
 
 		vi.resetModules();
 
 		const second = await import("./rate-limiter");
-		const app2 = makeApp(second.rateLimiter("RATE_LIMIT_AUTH"));
+		const app2 = makeApp(second.rateLimiter("RATE_LIMIT_AUTH", { windowSeconds: 60 }));
 		const res = await req(app2, env, "10.0.0.7");
 
 		expect(res.status).toBe(429);

@@ -12,7 +12,7 @@ export const App = new Hono<{ Bindings: Env }>();
 App.use("*", requestId());
 App.onError(onErrorHandler);
 App.use("*", createCorsMiddleware());
-App.use("/api/auth/*", rateLimiter("RATE_LIMIT_AUTH"));
+App.use("/api/auth/*", rateLimiter("RATE_LIMIT_AUTH", { windowSeconds: 60 }));
 
 App.route("/api/auth", auth);
 App.route("/health", health);
