@@ -1,3 +1,10 @@
+## [1.5.9](https://github.com/auditmos/hono-on-cf/compare/v1.5.8...v1.5.9) (2026-05-24)
+
+
+### Bug Fixes
+
+* **data-ops:** log structured JSON when database readiness probe fails ([#25](https://github.com/auditmos/hono-on-cf/issues/25)) ([5fb8761](https://github.com/auditmos/hono-on-cf/commit/5fb8761adf85ef76d8192418f00c7688f8dd4148))
+
 ## [1.5.8](https://github.com/auditmos/hono-on-cf/compare/v1.5.7...v1.5.8) (2026-05-24)
 
 
