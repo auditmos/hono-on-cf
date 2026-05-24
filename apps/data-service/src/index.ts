@@ -2,7 +2,6 @@ import { WorkerEntrypoint } from "cloudflare:workers";
 import { setAuth } from "@repo/data-ops/auth/server";
 import { getDb, initDatabase } from "@repo/data-ops/database/setup";
 import { App } from "@/hono/app";
-import { handleQueue } from "./queues";
 import { handleScheduled } from "./scheduled";
 
 export default class DataService extends WorkerEntrypoint<Env> {
@@ -28,9 +27,5 @@ export default class DataService extends WorkerEntrypoint<Env> {
 
 	async scheduled(controller: ScheduledController) {
 		await handleScheduled(controller, this.env, this.ctx);
-	}
-
-	async queue(batch: MessageBatch<ExampleQueueMessage>) {
-		await handleQueue(batch, this.env);
 	}
 }

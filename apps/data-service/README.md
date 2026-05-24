@@ -103,17 +103,13 @@ pnpm run cf-typegen
 
 #### `service-bindings.d.ts` (Manual)
 
-Use this file **only** for custom TypeScript interfaces that aren't environment variables:
-- Workflow parameters (e.g., `ExampleWorkflowParams`)
-- Queue message types (e.g., `ExampleQueueMessage`)
-- Custom types shared across the service
+Holds the ambient `Env` interface that consumers reference as `WorkerEntrypoint<Env>`, `Hono<{ Bindings: Env }>`, etc. By default it just extends `BaseEnv`:
 
-The `Env` interface in this file extends `Cloudflare.Env`:
 ```typescript
-interface Env extends Cloudflare.Env {}
+interface Env extends BaseEnv {}
 ```
 
-**Do not** add environment variables here. Add them to `.dev.vars` instead and run `cf-typegen`.
+Add custom ambient interfaces here when you wire a Workflow, Queue, or Durable Object — for example, the params type for a `WorkflowEntrypoint<Env, MyParams>` or the message body for `MessageBatch<MyMessage>`. Keep this file narrow: do not declare typed runtime values, and do not add environment variables (those go in `.dev.vars` + `pnpm run cf-typegen`).
 
 #### Why This Separation?
 
