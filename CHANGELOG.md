@@ -1,3 +1,10 @@
+## [1.5.6](https://github.com/auditmos/hono-on-cf/compare/v1.5.5...v1.5.6) (2026-05-24)
+
+
+### Bug Fixes
+
+* **data-service:** use Cloudflare RateLimit binding ([#22](https://github.com/auditmos/hono-on-cf/issues/22)) ([b499ed7](https://github.com/auditmos/hono-on-cf/commit/b499ed71b9ae5e8bed4b8452614a0f3f0ad9792c))
+
 ## [1.5.5](https://github.com/auditmos/hono-on-cf/compare/v1.5.4...v1.5.5) (2026-05-05)
 
 ## [1.5.4](https://github.com/auditmos/hono-on-cf/compare/v1.5.3...v1.5.4) (2026-04-01)
