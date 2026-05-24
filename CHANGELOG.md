@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/auditmos/hono-on-cf/compare/v1.6.0...v1.7.0) (2026-05-24)
+
+
+### Features
+
+* **data-service:** set Retry-After on rate-limited 429s ([#31](https://github.com/auditmos/hono-on-cf/issues/31)) ([5805da9](https://github.com/auditmos/hono-on-cf/commit/5805da9f91d0eea5fc295f35804e1885cf28166a))
+
 # [1.6.0](https://github.com/auditmos/hono-on-cf/compare/v1.5.11...v1.6.0) (2026-05-24)
 
 
