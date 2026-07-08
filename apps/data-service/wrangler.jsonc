@@ -2,7 +2,7 @@
 	"$schema": "./node_modules/wrangler/config-schema.json",
 	"name": "hono-on-cf-ds",
 	"main": "./src/index.ts",
-	"compatibility_date": "2025-04-01",
+	"compatibility_date": "2026-07-08",
 	"compatibility_flags": ["nodejs_compat"],
 	"observability": {
 		// Workers Logs: 100% sampling initially so we see every event while traffic is low.
