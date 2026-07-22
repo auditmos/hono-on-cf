@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/auditmos/hono-on-cf/compare/v1.7.0...v1.7.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **data-ops:** set explicit rootDir for tsc-alias 1.9 ([dca3f42](https://github.com/auditmos/hono-on-cf/commit/dca3f428902db7234d892661f2088d64dec6f399))
+
 # [1.7.0](https://github.com/auditmos/hono-on-cf/compare/v1.6.0...v1.7.0) (2026-05-24)
 
 
