@@ -58,7 +58,7 @@ clients.post("/", requireAuth(), zValidator(...), handler)
 
 **Service Bindings:** RPC methods on `WorkerEntrypoint` bypass HTTP entirely — no `requireAuth()` needed on them. Only `fetch()` goes through Hono middleware.
 
-**Auth routes** (`/api/auth/*`) already have `rateLimiter({ windowMs: 60_000, maxRequests: 20 })` applied in `app.ts` — don't add again.
+**Auth routes** (`/api/auth/*`) already have `rateLimiter("RATE_LIMIT_AUTH", { windowSeconds: 60 })` applied in `app.ts` — don't add again. The middleware names a binding; the actual limit lives in `wrangler.jsonc` under `ratelimits`, per environment.
 
 </important>
 
@@ -69,6 +69,16 @@ pnpm run dev                # local dev server (port 8788)
 pnpm run deploy:staging     # wrangler deploy --env staging
 pnpm run deploy:production  # wrangler deploy --env production
 ```
+
+## Testing
+
+```bash
+pnpm run test               # vitest run, inside workerd
+```
+
+This suite runs in the Workers runtime (`vitest.config.mts` wires `@cloudflare/vitest-pool-workers`), not Node. Bindings are the real ones from `wrangler.jsonc`'s dev environment — `import { env } from "cloudflare:workers"` and use them directly rather than stubbing. Rate-limit assertions therefore track whatever `ratelimits` says, so changing a limit there changes what the tests enforce.
+
+Everything runs locally: no credentials, no network, no container runtime. `.dev.vars` is loaded when present but nothing in the suite depends on it.
 
 ## Env vars
 

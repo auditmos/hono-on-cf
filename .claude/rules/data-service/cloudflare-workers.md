@@ -72,6 +72,8 @@ return response
 
 ## Testing
 
-- Use `@cloudflare/vitest-pool-workers` for integration tests
-- Mock bindings in unit tests
+- The Worker suite runs inside workerd via `@cloudflare/vitest-pool-workers`, configured in `vitest.config.mts`
+- Bindings come from `wrangler.jsonc`'s dev environment — reach them with `import { env } from "cloudflare:workers"`
+- Don't hand-roll a stub for a binding the runtime provides: a stub returns whatever you chose, which proves nothing about the platform's semantics
+- Rate limits, and other binding-shaped configuration, are asserted against the values that ship — change `wrangler.jsonc` and the test moves with it
 - Test with `wrangler dev` locally

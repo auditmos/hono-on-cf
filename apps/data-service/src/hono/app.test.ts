@@ -1,75 +1,43 @@
-const mockAuthHandler = vi.fn();
+import { env } from "cloudflare:workers";
+import { App } from "./app";
 
-vi.mock("@repo/data-ops/auth/server", () => ({
-	getAuth: () => ({ handler: mockAuthHandler }),
-}));
+// wrangler.jsonc, dev environment: RATE_LIMIT_AUTH is 20 requests per 60s.
+const AUTH_LIMIT = 20;
 
-const makeRateLimitBinding = (maxRequests: number, windowMs = 60_000): RateLimit => {
-	const counts = new Map<string, { count: number; resetAt: number }>();
-	return {
-		limit: async ({ key }) => {
-			const now = Date.now();
-			const record = counts.get(key);
-			if (!record || now > record.resetAt) {
-				counts.set(key, { count: 1, resetAt: now + windowMs });
-				return { success: true };
-			}
-			if (record.count >= maxRequests) return { success: false };
-			record.count++;
-			return { success: true };
+// Auth is never initialized here, so the handler behind the limiter fails with a
+// 500. That is the point: these assertions are about which middleware the route
+// is wired to, and a 500 proves the request reached the handler rather than
+// being turned away by the limiter.
+const signIn = (ip: string) =>
+	App.request(
+		"/api/auth/sign-in/email",
+		{
+			method: "POST",
+			headers: { "Content-Type": "application/json", "cf-connecting-ip": ip },
+			body: JSON.stringify({ email: "a@example.com", password: "pass" }),
 		},
-	};
-};
-
-const makeEnv = (): Env =>
-	({
-		CLOUDFLARE_ENV: "dev",
-		RATE_LIMIT_AUTH: makeRateLimitBinding(20),
-		RATE_LIMIT_HEALTH: makeRateLimitBinding(10),
-	}) as unknown as Env;
+		env,
+	);
 
 describe("App middleware wiring", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		mockAuthHandler.mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
-	});
+	it("rate limits /api/auth/* once the configured limit is exceeded", async () => {
+		const ip = "198.51.100.1";
 
-	it("rate limits /api/auth/* after 20 requests from same IP", async () => {
-		const { App } = await import("./app");
-		const env = makeEnv();
-
-		const authReq = () =>
-			App.request(
-				"/api/auth/sign-in/email",
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						"cf-connecting-ip": "30.0.0.1",
-					},
-					body: JSON.stringify({ email: "a@example.com", password: "pass" }),
-				},
-				env,
-			);
-
-		for (let i = 0; i < 20; i++) {
-			await authReq();
+		for (let i = 0; i < AUTH_LIMIT; i++) {
+			expect((await signIn(ip)).status).not.toBe(429);
 		}
-		const res = await authReq();
+
+		const res = await signIn(ip);
 
 		expect(res.status).toBe(429);
+		expect(res.headers.get("Retry-After")).toBe("60");
 	});
 
-	it("does not rate limit non-auth endpoints", async () => {
-		const { App } = await import("./app");
-		const env = makeEnv();
+	it("leaves the liveness probe unmetered", async () => {
+		const ip = "198.51.100.2";
 
-		for (let i = 0; i < 21; i++) {
-			const res = await App.request(
-				"/health/live",
-				{ headers: { "cf-connecting-ip": "30.0.0.2" } },
-				env,
-			);
+		for (let i = 0; i <= AUTH_LIMIT; i++) {
+			const res = await App.request("/health/live", { headers: { "cf-connecting-ip": ip } }, env);
 			expect(res.status).toBe(200);
 		}
 	});

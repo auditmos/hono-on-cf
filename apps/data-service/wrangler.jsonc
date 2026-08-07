@@ -41,10 +41,15 @@
 					"namespace_id": "1001",
 					"simple": { "limit": 20, "period": 60 }
 				},
+				// Sized for uptime monitors, not humans. A monitoring provider polls from
+				// many checkpoints behind a handful of egress addresses, so an entire
+				// provider can reach the Worker as one client address. A human-sized limit
+				// here turns routine monitoring into false alerts. 5/s still caps a single
+				// address far below anything that would stress the database behind /ready.
 				{
 					"name": "RATE_LIMIT_HEALTH",
 					"namespace_id": "1002",
-					"simple": { "limit": 10, "period": 60 }
+					"simple": { "limit": 300, "period": 60 }
 				}
 			]
 			// "kv_namespaces": [
@@ -96,10 +101,11 @@
 					"namespace_id": "2001",
 					"simple": { "limit": 20, "period": 60 }
 				},
+				// Sized for uptime monitors, not humans — see the dev environment above.
 				{
 					"name": "RATE_LIMIT_HEALTH",
 					"namespace_id": "2002",
-					"simple": { "limit": 10, "period": 60 }
+					"simple": { "limit": 300, "period": 60 }
 				}
 			]
 			// "kv_namespaces": [
@@ -151,10 +157,11 @@
 					"namespace_id": "3001",
 					"simple": { "limit": 20, "period": 60 }
 				},
+				// Sized for uptime monitors, not humans — see the dev environment above.
 				{
 					"name": "RATE_LIMIT_HEALTH",
 					"namespace_id": "3002",
-					"simple": { "limit": 10, "period": 60 }
+					"simple": { "limit": 300, "period": 60 }
 				}
 			]
 			// "kv_namespaces": [
