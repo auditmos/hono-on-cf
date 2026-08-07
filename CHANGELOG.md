@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/auditmos/hono-on-cf/compare/v1.8.0...v1.9.0) (2026-08-07)
+
+
+### Features
+
+* **ci:** fail the build on documentation drift ([bec9c3a](https://github.com/auditmos/hono-on-cf/commit/bec9c3ac0b31f4a213626d107a78ebf5b555dca0)), closes [#50](https://github.com/auditmos/hono-on-cf/issues/50)
+
 # [1.8.0](https://github.com/auditmos/hono-on-cf/compare/v1.7.2...v1.8.0) (2026-08-07)
 
 
