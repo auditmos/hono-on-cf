@@ -9,7 +9,7 @@ env:
 
 jobs:
   checks:
-    name: Lint, types, test, knip
+    name: Lint, types, test, docs, knip
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -36,6 +36,9 @@ jobs:
 
       - name: Test
         run: pnpm run test
+
+      - name: Documentation truth
+        run: pnpm run check:docs
 
       - name: Knip
         run: pnpm run knip

@@ -37,6 +37,9 @@ Lint auto-runs via PostToolUse hook on Edit/Write (biome check --write).
 After completing changes, run manually:
 1. `pnpm run types` — type-check all packages
 2. `pnpm run test` — run all tests
+3. `pnpm run check:docs` — fail if any doc names a directory, file, endpoint, script or link that does not exist
+
+All three run on every pull request, so documentation drift blocks a merge the same way a failing test does.
 
 - Max 500 lines per source file — split if exceeding
 - Biome config: `biome.json` (root), plugins: `.biome-plugins/*.grit`

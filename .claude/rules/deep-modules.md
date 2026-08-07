@@ -21,7 +21,7 @@ Small interface, large implementation (Ousterhout). Absorb complexity inside mod
 
 ## data-ops Domain Pattern
 
-Each domain folder (`client/`, `health/`, etc.) is one deep module:
+Each domain folder (`packages/data-ops/src/client/`, `packages/data-ops/src/health/`, etc.) is one deep module:
 
 - `table.ts` — Drizzle table definition (internal)
 - `schema.ts` — Zod schemas (internal unless needed by consumers)
