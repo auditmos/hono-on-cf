@@ -1,3 +1,5 @@
+## [1.7.2](https://github.com/auditmos/hono-on-cf/compare/v1.7.1...v1.7.2) (2026-08-07)
+
 ## [1.7.1](https://github.com/auditmos/hono-on-cf/compare/v1.7.0...v1.7.1) (2026-07-22)
 
 
