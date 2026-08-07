@@ -23,11 +23,7 @@
 ### data-service
 - [Hono](.claude/rules/data-service/hono.md): Handler/service/query pattern, middleware chain, Result type
 - [Cloudflare Workers](.claude/rules/data-service/cloudflare-workers.md): Worker patterns and bindings
-- [Durable Objects](.claude/rules/data-service/durable-objects.md): DO patterns
-- [Queues & Workflows](.claude/rules/data-service/queues-workflows.md): Queue consumers, workflow definitions
 - [Storage](.claude/rules/data-service/storage.md): KV, R2, D1 patterns
-- [Agent SDK](.claude/rules/data-service/agent-sdk.md): Cloudflare Agents SDK patterns
-- [Agent Workflows](.claude/rules/data-service/agent-workflows.md): Agent workflow orchestration
 
 ## Agents
 

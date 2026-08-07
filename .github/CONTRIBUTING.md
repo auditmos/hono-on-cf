@@ -41,10 +41,10 @@ This guide will help you get started.
 
 ```bash
 # 1. Design
-"Create a design doc for adding user notifications via Cloudflare Queues"
+"Create a design doc for adding a rate-limit override endpoint"
 
 # 2. Review & iterate
-"Add webhook delivery to the design"
+"Add an audit log to the design"
 
 # 3. Implement
 "Implement doc 003"

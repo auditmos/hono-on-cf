@@ -19,10 +19,7 @@ src/
 │   ├── services/         # Business logic, calls data-ops queries
 │   ├── middleware/       # request-id, cors, auth, rate-limiter, error-handler
 │   └── utils/            # error helpers (createErrorResponse, isError)
-├── scheduled/            # Cron triggers
-├── queues/               # Queue consumers
-├── durable-objects/      # Durable Objects
-└── workflows/            # Workflows
+└── scheduled/            # Cron triggers
 ```
 
 ## Patterns
@@ -42,7 +39,6 @@ See `hono.md` and `error-handling.md` rules for handler/service/query patterns a
 - `GET /clients` - public list
 - `GET|POST|PUT|DELETE /clients/*` - CRUD (GET /:id + mutations require auth)
 - `POST /api/auth/*` - Better Auth routes (sign-up, sign-in, sign-out, get-session)
-- `POST /webhooks/*` - inbound webhooks (signature verified)
 
 <important if="you are adding or modifying routes, handlers, or middleware">
 
@@ -66,22 +62,6 @@ clients.post("/", requireAuth(), zValidator(...), handler)
 **Auth routes** (`/api/auth/*`) already have `rateLimiter({ windowMs: 60_000, maxRequests: 20 })` applied in `app.ts` — don't add again.
 
 </important>
-
-## Webhooks
-
-**Pattern:** verification middleware → handler → service → data-ops
-
-**Key constraint:** signature verification needs raw body string before JSON parsing. Cannot use `zValidator` as route middleware. Instead:
-1. Middleware reads body via `c.req.text()`, stores in context
-2. Verifies signature against raw string
-3. Handler parses body with `Schema.parse(JSON.parse(body))`
-
-**Headers (standard-webhooks):**
-- `webhook-id` - UUID, used for idempotency
-- `webhook-timestamp` - unix seconds, 5min tolerance
-- `webhook-signature` - `v1,<base64 HMAC-SHA256>`
-
-**Idempotency:** `webhook_logs.msgId` unique constraint - duplicates are no-ops
 
 ## Dev
 

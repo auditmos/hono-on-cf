@@ -1,6 +1,6 @@
 # data-ops package
 
-Shared DB layer consumed by user-application and data-service apps.
+Shared DB layer consumed by data-service.
 
 ## Stack
 

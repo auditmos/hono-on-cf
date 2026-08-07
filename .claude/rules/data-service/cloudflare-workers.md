@@ -9,15 +9,23 @@ paths:
 
 - Use ES module syntax with default export
 - Extend `WorkerEntrypoint` for typed bindings
-- Initialize resources (DB) in fetch handler
+- Initialize resources (DB, auth) once in the constructor, not per-request in `fetch()`
 
 ```ts
 import { WorkerEntrypoint } from 'cloudflare:workers'
 
 export default class extends WorkerEntrypoint<Env> {
-  async fetch(request: Request): Promise<Response> {
-    const db = getDb(this.env.DATABASE_URL)
-    return app.fetch(request, { ...this.env, db })
+  constructor(ctx: ExecutionContext, env: Env) {
+    super(ctx, env)
+    initDatabase({
+      host: env.DATABASE_HOST,
+      username: env.DATABASE_USERNAME,
+      password: env.DATABASE_PASSWORD,
+    })
+  }
+
+  fetch(request: Request): Promise<Response> {
+    return app.fetch(request, this.env, this.ctx)
   }
 }
 ```

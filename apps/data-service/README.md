@@ -1,6 +1,6 @@
-# SaaS-on-CF (Software as a Service on Cloudflare) - Data Service
+# Hono-on-CF — Data Service
 
-Modular web application template - data service (backend package)
+REST API package (backend package) — Hono on Cloudflare Workers.
 
 ## Architecture
 
@@ -9,11 +9,6 @@ Backend service for long-running tasks and API endpoints also place to utilize C
 - **`wrangler.jsonc`** - Definitions for Cloudflare primitives.
 
 ### Directory Structure
-
-#### [`src/durable-objects/`](./src/durable-objects/)
-Cloudflare Durable Objects.
-
-- **`example-durable-object.ts`** - Sample definition for DO
 
 #### [`src/hono/`](./src/hono/)
 Hono Framework.
@@ -33,39 +28,19 @@ Business logic layer.
 
 ##### Endpoints
 
-**Users** `/users`
+**Clients** `/clients`
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/users` | - | List (`?limit=10&offset=0`) |
-| GET | `/users/:id` | - | Get |
-| POST | `/users` | 🔒 | Create |
-| PUT | `/users/:id` | 🔒 | Update |
-| DELETE | `/users/:id` | 🔒 | Delete |
+| GET | `/clients` | - | List (paginated) |
+| GET | `/clients/:id` | 🔒 | Get |
+| POST | `/clients` | 🔒 | Create |
+| PUT | `/clients/:id` | 🔒 | Update |
+| DELETE | `/clients/:id` | 🔒 | Delete |
 
 🔒 = `Authorization: Bearer <session_token>` (via `requireAuth()` — session-based)
 
-**Webhooks** `/webhooks`
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/webhooks/user.sync` | 🔐 | Sync user from external system |
-| POST | `/webhooks/user.action` | 🔐 | Receive user action events |
-
-🔐 = standard-webhooks signature (`webhook-id`, `webhook-timestamp`, `webhook-signature` headers)
-
-#### [`src/queues/`](./src/queues/)
-Cloudflare Queues.
-
-- **`index.ts`** - Sample queue
-
 #### [`src/scheduled/`](./src/scheduled/)
 Cloudflare Scheduled (Cron).
-
-- **`index.ts`** - Sample scheduler
-
-#### [`src/workflows/`](./src/workflows/)
-Cloudflare Workflows.
-
-- **`example-workflow.ts`** - Sample definition for Workflow
 
 ### Environment Variables
 
@@ -83,7 +58,7 @@ This project uses two type definition files for different purposes:
 | File | Purpose | Edited By |
 |------|---------|-----------|
 | `worker-configuration.d.ts` | Auto-generated types from Wrangler | `pnpm run cf-typegen` |
-| `service-bindings.d.ts` | Custom interfaces (workflows, queues) | Developer (manual) |
+| `service-bindings.d.ts` | Custom ambient interfaces (bindings not covered by wrangler) | Developer (manual) |
 
 #### `worker-configuration.d.ts` (Auto-generated)
 
@@ -109,7 +84,7 @@ Holds the ambient `Env` interface that consumers reference as `WorkerEntrypoint<
 interface Env extends BaseEnv {}
 ```
 
-Add custom ambient interfaces here when you wire a Workflow, Queue, or Durable Object — for example, the params type for a `WorkflowEntrypoint<Env, MyParams>` or the message body for `MessageBatch<MyMessage>`. Keep this file narrow: do not declare typed runtime values, and do not add environment variables (those go in `.dev.vars` + `pnpm run cf-typegen`).
+Add custom ambient interfaces here for binding types not covered by Wrangler's generated types. Keep this file narrow: do not declare typed runtime values, and do not add environment variables (those go in `.dev.vars` + `pnpm run cf-typegen`).
 
 #### Why This Separation?
 
