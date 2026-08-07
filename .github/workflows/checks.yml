@@ -40,5 +40,12 @@ jobs:
       - name: Documentation truth
         run: pnpm run check:docs
 
+      # The Worker's committed runtime types are generated, and nothing else
+      # notices when they fall behind the compatibility date they were generated
+      # for. Needs no credentials: it compares the generated banner against
+      # wrangler.jsonc and the installed toolchain, without regenerating.
+      - name: Runtime type freshness
+        run: pnpm run check:runtime-types
+
       - name: Knip
         run: pnpm run knip

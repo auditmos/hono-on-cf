@@ -96,6 +96,8 @@ Split by sensitivity, not by convenience.
 
 After editing `env.<name>.vars`, run `pnpm run cf-typegen`. Wrangler types the dev environment's vars as literals, which `service-bindings.d.ts` widens back to `string` — the same code runs in every environment.
 
+The same applies to `compatibility_date` and `compatibility_flags`: they decide which runtime types get generated, so changing one without regenerating leaves the Worker compiling against a runtime it no longer targets. `pnpm run check:runtime-types` fails the build on that gap, in CI and locally.
+
 ## Placement
 
 `staging` and `production` run with `"placement": { "mode": "smart" }` so the Worker runs near the single-region Postgres rather than near an arbitrary visitor. `dev` is excluded — the local runtime has no placement decision to make.

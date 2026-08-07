@@ -25,6 +25,7 @@
 		"lint:fix": "biome check --write .",
 		"lint:ci": "biome ci .",
 		"check:docs": "tsx scripts/doc-drift.ts",
+		"check:runtime-types": "tsx scripts/runtime-types-drift.ts",
 		"types": "pnpm run --filter data-ops types && pnpm run --filter data-service types",
 		"init-project": "tsx scripts/init-project.ts",
 		"knip": "knip",

@@ -42,6 +42,31 @@ describe("reusable checks workflow", () => {
 		const raw = readFileSync(join(WORKFLOWS_DIR, "checks.yml"), "utf8");
 		expect(raw).not.toContain("secrets.");
 	});
+
+	it("blocks a merge when the generated runtime types have gone stale", () => {
+		expect(collectRunCommands(checks)).toContain("pnpm run check:runtime-types");
+	});
+});
+
+describe("compatibility-date bump workflow", () => {
+	const compat = readWorkflow("compat-date.yml");
+	const raw = readFileSync(join(WORKFLOWS_DIR, "compat-date.yml"), "utf8");
+
+	it("regenerates the runtime types it invalidates by bumping the date", () => {
+		expect(collectRunCommands(compat).join("\n")).toContain("cf-typegen");
+	});
+
+	it("subjects its own pull request to the freshness check before opening it", () => {
+		// Bot pull requests opened with GITHUB_TOKEN do not start CI, so this
+		// workflow runs the same gate inline — a bump that leaves types behind
+		// fails here rather than merging unnoticed.
+		expect(collectRunCommands(compat)).toContain("pnpm run check:runtime-types");
+	});
+
+	it("no longer apologises for being unable to regenerate types", () => {
+		expect(raw).not.toMatch(/does not regenerate/i);
+		expect(raw).not.toMatch(/manual follow-up/i);
+	});
 });
 
 describe("pull-request workflow", () => {

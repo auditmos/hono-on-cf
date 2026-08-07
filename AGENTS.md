@@ -38,8 +38,9 @@ After completing changes, run manually:
 1. `pnpm run types` — type-check all packages
 2. `pnpm run test` — run all tests
 3. `pnpm run check:docs` — fail if any doc names a directory, file, endpoint, script or link that does not exist
+4. `pnpm run check:runtime-types` — fail if a Worker's generated `worker-configuration.d.ts` no longer matches the compatibility date, flags and workerd version it would be generated from today
 
-All three run on every pull request, so documentation drift blocks a merge the same way a failing test does.
+All four run on every pull request, so documentation drift and stale generated types block a merge the same way a failing test does.
 
 - Max 500 lines per source file — split if exceeding
 - Biome config: `biome.json` (root), plugins: `.biome-plugins/*.grit`

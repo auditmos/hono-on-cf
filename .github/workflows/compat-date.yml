@@ -119,6 +119,26 @@ jobs:
         if: steps.check.outputs.stale == 'true'
         run: pnpm install --frozen-lockfile
 
+      # Bumping the date invalidates the committed runtime types, so this job
+      # regenerates them in the same pull request rather than leaving a manual
+      # follow-up nobody performs.
+      - name: Regenerate runtime types
+        if: steps.check.outputs.stale == 'true'
+        run: |
+          set -euo pipefail
+          # `wrangler types` reads .dev.vars to declare the Worker's secrets on
+          # Env, and CI has none. Generating without it would silently drop those
+          # declarations, so seed the file from the committed template — only its
+          # key set reaches the generated types, never the values, and that key
+          # set is asserted by scripts/worker-config.test.ts.
+          cp apps/data-service/.example.vars apps/data-service/.dev.vars
+          pnpm --filter data-service cf-typegen
+          rm apps/data-service/.dev.vars
+
+      - name: Runtime type freshness
+        if: steps.check.outputs.stale == 'true'
+        run: pnpm run check:runtime-types
+
       - name: Lint
         if: steps.check.outputs.stale == 'true'
         run: pnpm run lint:ci
@@ -151,13 +171,14 @@ jobs:
 
             Cloudflare Workers best practice: set `compatibility_date` to today's date on new projects and periodically refresh on existing ones. New runtime features ship behind compat dates — staying current lets you opt into improvements without surprises and keeps you aligned with the runtime version Cloudflare actively tests.
 
+            `worker-configuration.d.ts` was regenerated in the same commit — bumping the date without regenerating fails `pnpm check:runtime-types`, so the two cannot drift apart.
+
             Validated before opening:
+            - `pnpm check:runtime-types`
             - `pnpm lint:ci`
             - `pnpm types`
             - `pnpm test`
             - `pnpm knip`
 
-            **Manual follow-up:** this workflow does not regenerate `worker-configuration.d.ts` (it would require `.dev.vars`, which are not in CI, and would strip env-var declarations). Run `pnpm --filter data-service cf-typegen` locally and commit the regenerated d.ts on top of this PR if the runtime-types header banner matters to you.
-
-            Note: `secrets.GITHUB_TOKEN` does not trigger CI on PRs it creates. Re-run jobs or push an empty commit to run CI.
+            Note: `secrets.GITHUB_TOKEN` does not trigger CI on PRs it creates, which is why this job runs the gates itself. Re-run jobs or push an empty commit to run CI too.
           labels: cloudflare, automated
