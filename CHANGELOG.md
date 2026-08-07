@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/auditmos/hono-on-cf/compare/v1.9.0...v1.10.0) (2026-08-07)
+
+
+### Features
+
+* **ci:** fail the build when generated runtime types go stale ([95f8bdb](https://github.com/auditmos/hono-on-cf/commit/95f8bdb7362208b104b10cf8faf6b8adcab6cdfd)), closes [#52](https://github.com/auditmos/hono-on-cf/issues/52)
+
 # [1.9.0](https://github.com/auditmos/hono-on-cf/compare/v1.8.0...v1.9.0) (2026-08-07)
 
 
