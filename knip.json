@@ -5,9 +5,6 @@
 		".": {
 			"entry": ["scripts/*.ts", "taze.config.ts"]
 		},
-		"apps/data-service": {
-			"ignore": ["src/durable-objects/**", "src/workflows/**"]
-		},
 		"packages/data-ops": {
 			"entry": ["src/*/index.ts", "src/auth/*.ts", "config/auth.ts", "drizzle-*.config.ts"],
 			"ignoreBinaries": ["dotenvx"]

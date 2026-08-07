@@ -55,10 +55,10 @@ describe("agent-facing docs describe only what exists", () => {
 		const doc = read("apps/data-service/AGENTS.md");
 		const structureBlock = doc.match(/## Structure\n\n```\n([\s\S]*?)\n```/)?.[1] ?? "";
 		expect(structureBlock, "Structure code block should exist").toBeTruthy();
-		// Only top-level entries (no leading "│" continuation) represent direct children of src/.
+		// Only entries with zero leading indentation are direct children of src/.
 		const topLevelDirs = structureBlock
 			.split("\n")
-			.filter((line) => /^(├|└)/.test(line.trim()) && line.includes("/"))
+			.filter((line) => /^(├|└)/.test(line) && line.includes("/"))
 			.map((line) => line.match(/([\w-]+)\//)?.[1])
 			.filter((name): name is string => Boolean(name));
 		expect(topLevelDirs.length).toBeGreaterThan(0);

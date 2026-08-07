@@ -45,7 +45,7 @@
 	},
 	"keywords": [],
 	"author": "",
-	"license": "ISC",
+	"license": "MIT",
 	"packageManager": "pnpm@10.34.5",
 	"dependencies": {
 		"@neondatabase/serverless": "^1.1.0",

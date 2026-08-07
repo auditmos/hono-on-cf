@@ -39,9 +39,6 @@ Business logic layer.
 
 🔒 = `Authorization: Bearer <session_token>` (via `requireAuth()` — session-based)
 
-#### [`src/scheduled/`](./src/scheduled/)
-Cloudflare Scheduled (Cron).
-
 ### Environment Variables
 
 Config files in `apps/data-service/`:

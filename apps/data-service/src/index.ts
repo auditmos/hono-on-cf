@@ -3,7 +3,6 @@ import { setAuth } from "@repo/data-ops/auth/server";
 import { getDb, initDatabase } from "@repo/data-ops/database/setup";
 import { App } from "@/hono/app";
 import { assertCorsConfig } from "@/hono/middleware/cors";
-import { handleScheduled } from "./scheduled";
 
 export default class DataService extends WorkerEntrypoint<Env> {
 	constructor(ctx: ExecutionContext, env: Env) {
@@ -25,9 +24,5 @@ export default class DataService extends WorkerEntrypoint<Env> {
 	}
 	fetch(request: Request) {
 		return App.fetch(request, this.env, this.ctx);
-	}
-
-	async scheduled(controller: ScheduledController) {
-		await handleScheduled(controller, this.env, this.ctx);
 	}
 }

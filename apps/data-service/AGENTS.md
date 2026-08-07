@@ -13,13 +13,12 @@ Cloudflare Worker API exposing data-ops queries via Hono REST endpoints.
 ```
 src/
 ├── index.ts              # Worker entrypoint, initializes DB
-├── hono/
-│   ├── app.ts            # Hono app, middleware chain, routes
-│   ├── handlers/         # Route handlers (thin, delegate to services)
-│   ├── services/         # Business logic, calls data-ops queries
-│   ├── middleware/       # request-id, cors, auth, rate-limiter, error-handler
-│   └── utils/            # error helpers (createErrorResponse, isError)
-└── scheduled/            # Cron triggers
+└── hono/
+    ├── app.ts            # Hono app, middleware chain, routes
+    ├── handlers/         # Route handlers (thin, delegate to services)
+    ├── services/         # Business logic, calls data-ops queries
+    ├── middleware/       # request-id, cors, auth, rate-limiter, error-handler
+    └── utils/            # error helpers (createErrorResponse, isError)
 ```
 
 ## Patterns

@@ -2,6 +2,7 @@
 	"name": "data-service",
 	"version": "0.0.0",
 	"private": true,
+	"license": "MIT",
 	"scripts": {
 		"deploy:staging": "wrangler deploy --env staging",
 		"deploy:production": "wrangler deploy --env production",
