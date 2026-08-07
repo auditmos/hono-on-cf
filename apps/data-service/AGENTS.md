@@ -72,11 +72,23 @@ pnpm run deploy:production  # wrangler deploy --env production
 
 ## Env vars
 
-Required in `.dev.vars` (local) or Cloudflare dashboard (remote):
-- `DATABASE_HOST`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`
+Split by sensitivity, not by convenience.
+
+**Versioned config** — `wrangler.jsonc`, under `env.<name>.vars`, so a change is reviewable in the pull request that makes it:
 - `CLOUDFLARE_ENV` - dev | staging | production
-- `ALLOWED_ORIGINS` - comma-separated origins (prod/staging only)
+- `ALLOWED_ORIGINS` - comma-separated origins (staging/production; dev uses a fixed localhost list)
+
+**Secrets** — `.dev.vars` (local) or pushed with `./sync-secrets.sh <env>` (remote), never committed:
+- `DATABASE_HOST`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`
 - `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` - Better Auth config
+
+`sync-secrets.sh` pushes the whole file in one `wrangler secret bulk` call and refuses any key that belongs in versioned config.
+
+After editing `env.<name>.vars`, run `pnpm run cf-typegen`. Wrangler types the dev environment's vars as literals, which `service-bindings.d.ts` widens back to `string` — the same code runs in every environment.
+
+## Placement
+
+`staging` and `production` run with `"placement": { "mode": "smart" }` so the Worker runs near the single-region Postgres rather than near an arbitrary visitor. `dev` is excluded — the local runtime has no placement decision to make.
 
 ## Don't
 
