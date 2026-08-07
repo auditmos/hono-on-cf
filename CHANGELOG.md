@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/auditmos/hono-on-cf/compare/v1.7.2...v1.8.0) (2026-08-07)
+
+
+### Features
+
+* **data-service:** adopt current Worker platform defaults ([aa0473b](https://github.com/auditmos/hono-on-cf/commit/aa0473b50ece071330425e02274bd9814de3cf8a)), closes [#48](https://github.com/auditmos/hono-on-cf/issues/48)
+
 ## [1.7.2](https://github.com/auditmos/hono-on-cf/compare/v1.7.1...v1.7.2) (2026-08-07)
 
 ## [1.7.1](https://github.com/auditmos/hono-on-cf/compare/v1.7.0...v1.7.1) (2026-07-22)
