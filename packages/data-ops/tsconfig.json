@@ -6,20 +6,13 @@
 		"noUncheckedIndexedAccess": true,
 		"resolveJsonModule": true,
 		"isolatedModules": true,
-		"noEmit": false,
-		"declaration": true,
+		// Consumers compile this package's source under their own configuration,
+		// so nothing here is ever emitted — this config only type-checks.
+		"noEmit": true,
 		"strict": true,
 		"skipLibCheck": true,
-		"outDir": "./dist",
-		// Required by tsc-alias >= 1.9 when baseUrl is implicit. Matches the
-		// rootDir tsc already infers from `include: ["src"]`, so emit is
-		// unchanged — dist/ still mirrors src/ exactly as the exports map expects.
-		"rootDir": "./src",
 		"lib": ["ESNext"],
-		"paths": {
-			"@/*": ["./src/*"]
-		},
-		"types": ["@cloudflare/workers-types", "vitest/globals"]
+		"types": ["node", "vitest/globals"]
 	},
 	"include": ["src"]
 }

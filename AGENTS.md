@@ -13,12 +13,12 @@ Each has its own `AGENTS.md` with package-specific patterns (`CLAUDE.md` symlink
 
 ## Architecture
 
-`apps/data-service` depends on `packages/data-ops` for DB queries, Zod schemas, and auth — never the reverse. `data-ops` resolves through its compiled `dist/`, so schema/query changes are invisible to `data-service` until `pnpm run build:data-ops` runs. The root `setup`/`types`/`test` scripts do this automatically; scoped `pnpm --filter data-service ...` commands do not.
+`apps/data-service` depends on `packages/data-ops` for DB queries, Zod schemas, and auth — never the reverse. `data-ops` has no compile step: its package exports point straight at TypeScript source, so a schema or query change is visible to `data-service` immediately, in both type-checks and tests.
 
 ## Commands
 
 ```bash
-pnpm run setup                    # install + build data-ops
+pnpm run setup                    # install dependencies
 pnpm run dev:data-service         # API dev (port 8788)
 pnpm run deploy:staging:data-service
 pnpm run deploy:production:data-service
@@ -35,7 +35,7 @@ pnpm run test:coverage            # with coverage report
 Lint auto-runs via PostToolUse hook on Edit/Write (biome check --write).
 
 After completing changes, run manually:
-1. `pnpm run types` — type-check all packages (builds data-ops first)
+1. `pnpm run types` — type-check all packages
 2. `pnpm run test` — run all tests
 
 - Max 500 lines per source file — split if exceeding

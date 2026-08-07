@@ -81,5 +81,4 @@ Required in `.dev.vars` (local) or Cloudflare dashboard (remote):
 ## Don't
 
 - Put DB queries here - add to `@repo/data-ops/{domain}`
-- Forget to rebuild data-ops after schema changes (`pnpm --filter @repo/data-ops build`)
 - Modify `worker-configuration.d.ts`, use `pnpm run cf-typegen`

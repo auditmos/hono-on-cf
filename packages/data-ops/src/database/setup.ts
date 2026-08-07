@@ -1,7 +1,7 @@
 // packages/data-ops/database/setup.ts
 import { drizzle } from "drizzle-orm/neon-http";
-import * as authSchema from "../drizzle/auth-schema.js";
-import * as authRelations from "../drizzle/relations.js";
+import * as authSchema from "../drizzle/auth-schema";
+import * as authRelations from "../drizzle/relations";
 
 const schema = { ...authSchema, ...authRelations };
 

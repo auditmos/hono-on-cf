@@ -31,7 +31,7 @@ Stack: [Hono](https://hono.dev), [Better Auth](https://www.better-auth.com/docs/
 pnpm run setup
 ```
 
-Installs all dependencies and builds data-ops package.
+Installs all dependencies. `packages/data-ops` has no compile step — it is consumed directly from TypeScript source.
 
 ## Development
 

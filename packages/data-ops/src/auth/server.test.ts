@@ -9,7 +9,7 @@ vi.mock("better-auth/adapters/drizzle", () => ({
 	})),
 }));
 
-const fakeDb = {} as ReturnType<typeof import("@/database/setup").getDb>;
+const fakeDb = {} as ReturnType<typeof import("../database/setup").getDb>;
 
 function makeConfig() {
 	return {

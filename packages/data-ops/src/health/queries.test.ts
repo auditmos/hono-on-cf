@@ -1,6 +1,6 @@
-import { getDb } from "@/database/setup";
+import { getDb } from "../database/setup";
 
-vi.mock("@/database/setup", () => ({
+vi.mock("../database/setup", () => ({
 	getDb: vi.fn(),
 }));
 

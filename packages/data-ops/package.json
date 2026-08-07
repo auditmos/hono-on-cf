@@ -3,29 +3,14 @@
 	"version": "1.0.0",
 	"description": "Manage auth, database, schemas, and queries",
 	"exports": {
-		"./client": {
-			"types": "./dist/client/index.d.ts",
-			"default": "./dist/client/index.js"
-		},
-		"./health": {
-			"types": "./dist/health/index.d.ts",
-			"default": "./dist/health/index.js"
-		},
-		"./auth/*": {
-			"types": "./dist/auth/*.d.ts",
-			"default": "./dist/auth/*.js"
-		},
-		"./database/*": {
-			"types": "./dist/database/*.d.ts",
-			"default": "./dist/database/*.js"
-		},
-		"./drizzle/*": {
-			"types": "./dist/drizzle/*.d.ts",
-			"default": "./dist/drizzle/*.js"
-		}
+		"./client": "./src/client/index.ts",
+		"./health": "./src/health/index.ts",
+		"./auth/*": "./src/auth/*.ts",
+		"./database/*": "./src/database/*.ts",
+		"./drizzle/*": "./src/drizzle/*.ts"
 	},
 	"scripts": {
-		"build": "tsc -p tsconfig.json --outDir ./dist && tsc-alias",
+		"types": "tsc --noEmit",
 		"better-auth:generate": "mkdir -p src/drizzle && npx @better-auth/cli@latest generate --config ./config/auth.ts --output ./src/drizzle/auth-schema.ts",
 		"db:generate:dev": "dotenvx run -f .env.dev -- drizzle-kit generate --config drizzle-dev.config.ts",
 		"db:migrate:dev": "dotenvx run -f .env.dev -- drizzle-kit migrate --config drizzle-dev.config.ts",
@@ -54,11 +39,9 @@
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20260702.1",
 		"@types/node": "^22.20.1",
 		"drizzle-kit": "^0.31.10",
 		"postgres": "^3.4.9",
-		"tsc-alias": "^1.9.1",
 		"tsx": "^4.23.5",
 		"typescript": "^5.9.3"
 	}
