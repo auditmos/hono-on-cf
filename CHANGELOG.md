@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/auditmos/hono-on-cf/compare/v1.11.0...v1.12.0) (2026-08-08)
+
+
+### Features
+
+* **deploy:** ship a credential-guarded deploy pipeline ([cacdd5f](https://github.com/auditmos/hono-on-cf/commit/cacdd5f64e0b15ffdf1f684daf2a58d710abcffa)), closes [#53](https://github.com/auditmos/hono-on-cf/issues/53)
+
 # [1.11.0](https://github.com/auditmos/hono-on-cf/compare/v1.10.0...v1.11.0) (2026-08-08)
 
 
