@@ -65,11 +65,14 @@ function secretTemplateKeys(): string[] {
 }
 
 describe("every environment survives a config dry-run", () => {
+	// The deploy pipeline uploads versions rather than replacing the running
+	// Worker, so this dry-runs the command the pipeline actually issues. Needs no
+	// credentials: it bundles and validates without reaching the platform.
 	it.each(ALL_ENVIRONMENTS)("dry-runs cleanly for %s", (environment) => {
 		expect(() =>
 			execFileSync(
 				join(DATA_SERVICE, "node_modules/.bin/wrangler"),
-				["deploy", "--dry-run", "--env", environment],
+				["versions", "upload", "--dry-run", "--env", environment],
 				{
 					cwd: DATA_SERVICE,
 					stdio: "pipe",

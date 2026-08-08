@@ -174,3 +174,139 @@ describe("release workflow", () => {
 		expect(commands).not.toContain("pnpm run knip");
 	});
 });
+
+describe("deploy workflow", () => {
+	const deploy = readWorkflow("deploy.yml");
+	const raw = readFileSync(join(WORKFLOWS_DIR, "deploy.yml"), "utf8");
+	const jobs = (deploy.jobs ?? {}) as Record<
+		string,
+		{ if?: string; needs?: string | string[]; environment?: string; steps?: WorkflowStep[] }
+	>;
+
+	it("deploys staging from the main branch", () => {
+		expect(deploy.on?.push?.branches).toContain("main");
+	});
+
+	it("reaches production only from a version tag or an explicit dispatch", () => {
+		expect(deploy.on?.push?.tags?.join(" ")).toMatch(/v/);
+		const choice = deploy.on?.workflow_dispatch?.inputs?.environment;
+		expect(choice?.type).toBe("choice");
+		expect(choice?.options).toEqual(["staging", "production"]);
+	});
+
+	it("never names an environment in YAML, deferring to the tested resolver", () => {
+		// The rule that keeps a branch called `production` out of production is a
+		// unit-tested function, not a YAML boolean nobody can exercise.
+		expect(raw).toContain("scripts/deploy-target.ts");
+	});
+
+	it("checks for deployment credentials before doing anything else", () => {
+		const guard = jobs.guard?.steps ?? [];
+		const credentialStep = guard.findIndex((step) => step.id === "credentials");
+		expect(credentialStep).toBe(1); // after checkout, before everything else
+		expect(guard[credentialStep]?.env).toMatchObject({
+			CLOUDFLARE_API_TOKEN: expect.stringContaining("secrets.CLOUDFLARE_API_TOKEN"),
+			CLOUDFLARE_ACCOUNT_ID: expect.stringContaining("secrets.CLOUDFLARE_ACCOUNT_ID"),
+		});
+	});
+
+	it("skips with a notice naming the exact secrets to add", () => {
+		expect(raw).toMatch(/::notice::[^\n]*CLOUDFLARE_API_TOKEN/);
+		expect(raw).toMatch(/::notice::[^\n]*CLOUDFLARE_ACCOUNT_ID/);
+	});
+
+	it("reports green on a clone with no credentials", () => {
+		// Skipping is not failing: every step past the guard is conditional, and
+		// the guard itself never exits non-zero for an absent secret.
+		const guard = jobs.guard?.steps ?? [];
+		for (const step of guard.slice(2)) {
+			expect(step.if ?? "").toContain("steps.credentials.outputs.configured == 'true'");
+		}
+		expect(jobs.deploy?.if).toContain("needs.guard.outputs.configured == 'true'");
+	});
+
+	it("deploys the environment the resolver chose, under that environment's protection rules", () => {
+		expect(jobs.deploy?.needs).toContain("guard");
+		expect(jobs.deploy?.if).toContain("needs.guard.outputs.environment != ''");
+		expect(jobs.deploy?.environment).toContain("needs.guard.outputs.environment");
+	});
+});
+
+describe("deploy workflow rolls out gradually behind a readiness gate", () => {
+	const deploy = readWorkflow("deploy.yml");
+	const steps = ((deploy.jobs?.deploy?.steps ?? []) as WorkflowStep[]).filter((step) => step.run);
+	const named = (fragment: string): number =>
+		steps.findIndex((step) => (step.name ?? "").toLowerCase().includes(fragment));
+	const script = steps.map((step) => step.run).join("\n");
+
+	it("uploads a version instead of replacing the running one", () => {
+		expect(script).toContain("wrangler versions upload");
+		// `wrangler deploy` replaces production in place. The lookahead spares
+		// `wrangler deployments`, which only reads.
+		expect(script).not.toMatch(/wrangler deploy(?![a-z])/);
+	});
+
+	it("proves the bundle builds before uploading anything", () => {
+		expect(script).toContain("--dry-run");
+		expect(named("dry run")).toBeLessThan(named("upload"));
+	});
+
+	it("sends a fraction of traffic to the new version before all of it", () => {
+		// `<id>@<percentage>` is wrangler's traffic split. A canary share must
+		// precede the full share, or the rollout is a replace-in-place wearing a
+		// different command.
+		expect(script).toMatch(/versions deploy[^\n]*@\$\{?CANARY_PERCENTAGE/);
+		expect(script).toMatch(/versions deploy[^\n]*@100/);
+		expect(named("canary")).toBeLessThan(named("promote"));
+	});
+
+	it("gates promotion on the readiness probe, never the liveness one", () => {
+		const gate = steps[named("readiness gate")];
+		expect(gate?.run).toContain("READINESS_URL");
+		expect(script).not.toContain("/health/live");
+		// The resolver only ever builds a /health/ready URL, and the gate reads
+		// the database status that endpoint alone reports.
+		expect(gate?.run).toContain('"database":"connected"');
+	});
+
+	it("halts the rollout when the gate fails", () => {
+		expect(named("readiness gate")).toBeGreaterThan(named("canary"));
+		expect(named("readiness gate")).toBeLessThan(named("promote"));
+		// The gate exits non-zero, which stops the job before promotion — a
+		// `continue-on-error` here would silently promote a broken version.
+		expect(steps[named("readiness gate")]?.["continue-on-error"]).toBeUndefined();
+	});
+
+	it("verifies the promoted version too, not just the canary", () => {
+		expect(named("verify")).toBeGreaterThan(named("promote"));
+	});
+
+	it("rolls back to the version that was serving before this run", () => {
+		const rollback = steps[named("roll back")];
+		expect(rollback?.if).toContain("failure()");
+		expect(rollback?.run).toContain("PREVIOUS_VERSION");
+		expect(named("previous")).toBeLessThan(named("upload"));
+	});
+});
+
+describe("the readiness gate probes the canary, not whatever answers", () => {
+	const deploy = readWorkflow("deploy.yml");
+	const steps = ((deploy.jobs?.deploy?.steps ?? []) as WorkflowStep[]).filter((step) => step.run);
+	const gate = steps.find((step) => (step.name ?? "").toLowerCase().includes("readiness gate"));
+
+	it("addresses the new version by id rather than sampling a traffic split", () => {
+		// At a 10% split an unaddressed probe usually reaches the *old* version, so
+		// a gate that just curls the domain mostly proves the old version works.
+		// The version-override header pins the request to the version under test.
+		expect(gate?.run).toContain("Cloudflare-Workers-Version-Overrides");
+		expect(gate?.run).toContain("NEW_VERSION");
+		expect(gate?.run).toContain("WORKER_NAME");
+	});
+
+	it("takes the Worker name from the resolver, not from a literal in YAML", () => {
+		const guardSteps = (deploy.jobs?.guard?.steps ?? []) as WorkflowStep[];
+		const target = guardSteps.find((step) => step.id === "target");
+		expect(target).toBeDefined();
+		expect(deploy.jobs?.guard?.outputs?.worker_name).toContain("steps.target.outputs.worker_name");
+	});
+});

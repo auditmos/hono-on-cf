@@ -1,0 +1,256 @@
+name: Deploy
+
+# Staging ships from main. Production is reachable only from a version tag or an
+# explicit dispatch, so a merge can never reach it by accident — the rule itself
+# lives in scripts/deploy-target.ts, where it is unit-tested against branch names
+# chosen to look like tags.
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy"
+        required: true
+        type: choice
+        options: [staging, production]
+
+# One deploy per environment at a time, and never cancel one mid-rollout: an
+# interrupted rollout leaves traffic split between two versions.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # Future-proof: opt into Node 24 for JS actions before GH forces it (2026-06-02 default, 2026-09-16 hard cutoff)
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  # `pnpm install` runs `prepare` -> simple-git-hooks, which installs hooks into
+  # the CI runner where they have no job to do.
+  SKIP_SIMPLE_GIT_HOOKS: "1"
+
+jobs:
+  guard:
+    name: Deployment credentials
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      configured: ${{ steps.credentials.outputs.configured }}
+      environment: ${{ steps.target.outputs.environment }}
+      readiness_url: ${{ steps.target.outputs.readiness_url }}
+      worker_name: ${{ steps.target.outputs.worker_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # This is a template, and most clones of it will never deploy. Absent
+      # credentials the job skips with an instruction rather than failing: a
+      # fresh clone sees a green checkmark and is told exactly what to add.
+      # Adding the two secrets is then sufficient to enable deploys — nothing
+      # below changes.
+      - name: Detect deployment credentials
+        id: credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${CLOUDFLARE_API_TOKEN:-}" && -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "Deployment credentials found."
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Deployment is not configured, so nothing was deployed. Add repository secrets CLOUDFLARE_API_TOKEN (a Workers-scoped API token) and CLOUDFLARE_ACCOUNT_ID to enable it — no code change is needed."
+          fi
+
+      - name: Setup pnpm
+        if: steps.credentials.outputs.configured == 'true'
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        if: steps.credentials.outputs.configured == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        if: steps.credentials.outputs.configured == 'true'
+        run: pnpm install --frozen-lockfile
+
+      # Resolves both which environment this ref deploys to and where its
+      # readiness probe lives. Exits non-zero when an environment resolves but
+      # binds no custom domain — a rollout that cannot be gated must not start.
+      - name: Resolve deploy target
+        id: target
+        if: steps.credentials.outputs.configured == 'true'
+        # Passed through env rather than interpolated into the command, so no
+        # workflow input is ever spliced into a shell line.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_INPUT: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          pnpm exec tsx scripts/deploy-target.ts \
+            --event "$EVENT_NAME" \
+            --ref "$GITHUB_REF" \
+            --input "${DISPATCH_INPUT:-}" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy ${{ needs.guard.outputs.environment }}
+    needs: guard
+    if: needs.guard.outputs.configured == 'true' && needs.guard.outputs.environment != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Production carries a required reviewer, configured on the environment
+    # itself, so promotion waits for a human even when the tag is already pushed.
+    environment: ${{ needs.guard.outputs.environment }}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DEPLOY_ENV: ${{ needs.guard.outputs.environment }}
+      READINESS_URL: ${{ needs.guard.outputs.readiness_url }}
+      WORKER_NAME: ${{ needs.guard.outputs.worker_name }}
+      # Traffic share the new version carries while the gate watches it. A bad
+      # version affects this fraction of requests and no more until it passes.
+      CANARY_PERCENTAGE: "10"
+      # The gate polls for a minute. At a 10% split most polls land on the old
+      # version, so a single probe proves nothing — the run is what matters.
+      GATE_ATTEMPTS: "12"
+      GATE_INTERVAL_SECONDS: "5"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Fails on a bundle that cannot build, before anything reaches the platform.
+      - name: Dry run
+        working-directory: apps/data-service
+        run: pnpm exec wrangler versions upload --dry-run --env "$DEPLOY_ENV"
+
+      # Captured before the upload so a rollback has somewhere to go. Empty on a
+      # Worker's very first deploy, which has no previous version by definition.
+      - name: Record the previous version
+        id: previous
+        working-directory: apps/data-service
+        run: |
+          set -uo pipefail
+          previous=$(pnpm exec wrangler deployments status --env "$DEPLOY_ENV" --json 2>/dev/null \
+            | jq -r '.versions[0] | (.version_id // .id // empty)' 2>/dev/null || true)
+          echo "PREVIOUS_VERSION=$previous" >> "$GITHUB_ENV"
+          if [[ -n "$previous" ]]; then
+            echo "Currently serving: $previous"
+          else
+            echo "::warning::No previously deployed version found — a failed rollout cannot be rolled back automatically."
+          fi
+
+      # Uploads without taking traffic. Nothing a user can reach changes here.
+      #
+      # The version id has to come back out of wrangler's own output — it is the
+      # one place this pipeline reads prose rather than JSON, because the id is
+      # needed both to address the canary and to name it in a rollback message.
+      # A tag carrying the commit keeps the version traceable in the dashboard
+      # (tags are short, hence the abbreviated SHA).
+      - name: Upload version
+        working-directory: apps/data-service
+        run: |
+          set -euo pipefail
+          pnpm exec wrangler versions upload --env "$DEPLOY_ENV" \
+            --message "${GITHUB_SHA:0:7} via ${GITHUB_WORKFLOW}" \
+            --tag "${GITHUB_SHA:0:7}" | tee "$RUNNER_TEMP/upload.log"
+          version=$(grep -oiE 'Worker Version ID:[[:space:]]*[0-9a-f-]{36}' "$RUNNER_TEMP/upload.log" \
+            | grep -oE '[0-9a-f-]{36}' | tail -1)
+          if [[ -z "$version" ]]; then
+            echo "✗ could not read the uploaded version id from wrangler output" >&2
+            exit 1
+          fi
+          echo "NEW_VERSION=$version" >> "$GITHUB_ENV"
+          echo "Uploaded: $version"
+
+      - name: Canary rollout
+        working-directory: apps/data-service
+        run: |
+          set -euo pipefail
+          echo "Sending ${CANARY_PERCENTAGE}% of ${DEPLOY_ENV} traffic to ${NEW_VERSION}"
+          pnpm exec wrangler versions deploy "${NEW_VERSION}@${CANARY_PERCENTAGE}" \
+            --env "$DEPLOY_ENV" --yes \
+            --message "canary ${CANARY_PERCENTAGE}% — ${GITHUB_SHA:0:7}"
+
+      # The gate. Two things make it mean something:
+      #
+      # /health/ready opens a real database connection, where /health/live
+      # answers 200 from a Worker that cannot serve a single real request.
+      #
+      # The version-override header pins each probe to the version just
+      # uploaded. Without it, at a 10% split, nine probes in ten would reach the
+      # *old* version and the gate would mostly be testing what already worked.
+      #
+      # Exiting non-zero stops the job before promotion; the rollback step below
+      # picks it up.
+      - name: Readiness gate
+        run: |
+          set -uo pipefail
+          echo "Probing $READINESS_URL, pinned to ${NEW_VERSION}"
+          for attempt in $(seq 1 "$GATE_ATTEMPTS"); do
+            body=$(curl -fsS --max-time 10 "$READINESS_URL" \
+              -H "Cloudflare-Workers-Version-Overrides: ${WORKER_NAME}=\"${NEW_VERSION}\"" 2>/dev/null || true)
+            if [[ "$body" != *'"database":"connected"'* ]]; then
+              echo "✗ attempt ${attempt}/${GATE_ATTEMPTS} failed: ${body:-<no response>}" >&2
+              echo "::error::Readiness gate failed at ${CANARY_PERCENTAGE}% — halting the rollout." >&2
+              exit 1
+            fi
+            echo "✓ attempt ${attempt}/${GATE_ATTEMPTS}"
+            sleep "$GATE_INTERVAL_SECONDS"
+          done
+
+      - name: Promote to all traffic
+        working-directory: apps/data-service
+        run: |
+          set -euo pipefail
+          pnpm exec wrangler versions deploy "${NEW_VERSION}@100" \
+            --env "$DEPLOY_ENV" --yes \
+            --message "promote — ${GITHUB_SHA:0:7}"
+
+      # The canary gate only ever saw a fraction of traffic on the new version.
+      # This one sees nothing else.
+      - name: Verify the promoted version
+        run: |
+          set -uo pipefail
+          for attempt in $(seq 1 "$GATE_ATTEMPTS"); do
+            body=$(curl -fsS --max-time 10 "$READINESS_URL" 2>/dev/null || true)
+            if [[ "$body" != *'"database":"connected"'* ]]; then
+              echo "✗ attempt ${attempt}/${GATE_ATTEMPTS} failed after promotion: ${body:-<no response>}" >&2
+              exit 1
+            fi
+            echo "✓ attempt ${attempt}/${GATE_ATTEMPTS}"
+            sleep "$GATE_INTERVAL_SECONDS"
+          done
+
+      # Reached whenever anything above failed, including a failed gate at 10%.
+      - name: Roll back
+        if: failure()
+        working-directory: apps/data-service
+        run: |
+          set -uo pipefail
+          if [[ -z "${PREVIOUS_VERSION:-}" ]]; then
+            echo "::error::No previous version recorded — roll back by hand with 'wrangler versions deploy <id>@100 --env $DEPLOY_ENV'." >&2
+            exit 1
+          fi
+          echo "Returning all ${DEPLOY_ENV} traffic to ${PREVIOUS_VERSION}"
+          pnpm exec wrangler versions deploy "${PREVIOUS_VERSION}@100" \
+            --env "$DEPLOY_ENV" --yes \
+            --message "rollback — ${GITHUB_SHA:0:7} failed its readiness gate"
