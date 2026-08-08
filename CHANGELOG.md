@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/auditmos/hono-on-cf/compare/v1.10.0...v1.11.0) (2026-08-08)
+
+
+### Features
+
+* **ci:** run checks on bot pull requests ([7108cff](https://github.com/auditmos/hono-on-cf/commit/7108cfff978d58489f993138601969554c788281)), closes [#49](https://github.com/auditmos/hono-on-cf/issues/49)
+
 # [1.10.0](https://github.com/auditmos/hono-on-cf/compare/v1.9.0...v1.10.0) (2026-08-07)
 
 
