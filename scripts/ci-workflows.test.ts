@@ -23,6 +23,30 @@ function collectRunCommands(workflow: {
 	return commands;
 }
 
+type WorkflowStep = {
+	name?: string;
+	id?: string;
+	if?: string;
+	run?: string;
+	uses?: string;
+	with?: Record<string, string>;
+	env?: Record<string, string>;
+};
+
+function collectSteps(workflow: {
+	jobs?: Record<string, { steps?: WorkflowStep[] }>;
+}): WorkflowStep[] {
+	return Object.values(workflow.jobs ?? {}).flatMap((job) => job.steps ?? []);
+}
+
+function stepUsing(workflow: unknown, action: string): WorkflowStep {
+	const step = collectSteps(workflow as { jobs?: Record<string, { steps?: WorkflowStep[] }> }).find(
+		(candidate) => candidate.uses?.startsWith(action),
+	);
+	if (!step) throw new Error(`no step uses "${action}"`);
+	return step;
+}
+
 describe("reusable checks workflow", () => {
 	const checks = readWorkflow("checks.yml");
 
@@ -56,10 +80,11 @@ describe("compatibility-date bump workflow", () => {
 		expect(collectRunCommands(compat).join("\n")).toContain("cf-typegen");
 	});
 
-	it("subjects its own pull request to the freshness check before opening it", () => {
-		// Bot pull requests opened with GITHUB_TOKEN do not start CI, so this
-		// workflow runs the same gate inline — a bump that leaves types behind
-		// fails here rather than merging unnoticed.
+	it("subjects its own pull request to the freshness check", () => {
+		// A bump that leaves the types behind must fail somewhere before merge.
+		// With BOT_PR_TOKEN set that happens on the pull request; without it, on
+		// this inline step. Either way the gate exists — see the token describe
+		// block for which of the two runs.
 		expect(collectRunCommands(compat)).toContain("pnpm run check:runtime-types");
 	});
 
@@ -67,6 +92,57 @@ describe("compatibility-date bump workflow", () => {
 		expect(raw).not.toMatch(/does not regenerate/i);
 		expect(raw).not.toMatch(/manual follow-up/i);
 	});
+});
+
+describe("bot pull requests trigger checks", () => {
+	const BOT_WORKFLOWS = ["deps-update.yml", "compat-date.yml"] as const;
+
+	for (const file of BOT_WORKFLOWS) {
+		it(`${file} opens its pull request with a token that starts CI`, () => {
+			const open = stepUsing(readWorkflow(file), "peter-evans/create-pull-request");
+			expect(open.with?.token).toContain("secrets.BOT_PR_TOKEN");
+		});
+
+		it(`${file} still opens a pull request on a clone with no token`, () => {
+			// Degradation, never breakage: absent the secret the expression falls
+			// back to the default token, so the bot keeps working — its pull
+			// request simply arrives without checks.
+			const open = stepUsing(readWorkflow(file), "peter-evans/create-pull-request");
+			expect(open.with?.token).toContain("secrets.BOT_PR_TOKEN || secrets.GITHUB_TOKEN");
+		});
+
+		it(`${file} runs its inline gates only when the pull request will not be checked`, () => {
+			// The inline copies of lint/types/test exist solely because bot pull
+			// requests used to get no CI. Where the token starts CI they are
+			// redundant, and worse: failing them here aborts before the pull
+			// request exists, hiding a broken bump instead of showing it on a diff.
+			const gates = collectSteps(readWorkflow(file)).filter((step) =>
+				[
+					"pnpm run lint:ci",
+					"pnpm run types",
+					"pnpm run test",
+					"pnpm run knip",
+					"pnpm run check:runtime-types",
+				].includes(step.run ?? ""),
+			);
+			expect(gates.length).toBeGreaterThan(0);
+			for (const gate of gates) {
+				expect(gate.if ?? "").toContain("steps.bot_pr_token.outputs.configured != 'true'");
+			}
+		});
+
+		it(`${file} no longer tells reviewers its pull request gets no CI`, () => {
+			const raw = readFileSync(join(WORKFLOWS_DIR, file), "utf8");
+			expect(raw).not.toMatch(/does not trigger CI/i);
+			expect(raw).not.toMatch(/re-run all jobs/i);
+			expect(raw).not.toMatch(/push an empty commit/i);
+		});
+
+		it(`${file} names the secret a maintainer must add`, () => {
+			const raw = readFileSync(join(WORKFLOWS_DIR, file), "utf8");
+			expect(raw).toMatch(/::notice::BOT_PR_TOKEN is not configured/);
+		});
+	}
 });
 
 describe("pull-request workflow", () => {
