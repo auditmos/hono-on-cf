@@ -8,7 +8,12 @@ Modular API template on Cloudflare Workers.
 
 1. Click **Use this template** on GitHub (or `gh repo create --template`).
 2. `pnpm install`.
-3. `pnpm run init-project` — prompts for a kebab-case project name, renames `apps/data-service/wrangler.jsonc` + root `package.json`, and fans out the `*.example` templates into per-env files (`apps/data-service/.{dev,staging,production}.vars`, `packages/data-ops/.env.{dev,staging,production}`). Idempotent — re-runnable, never overwrites filled-in files. The script's "Next steps" output lists every field that still needs a value.
+3. `pnpm run init-project` — prompts for a kebab-case project name and a custom domain, then:
+   - renames `apps/data-service/wrangler.jsonc` + root `package.json`
+   - binds `api-staging.<domain>` and `api.<domain>` as **custom domains** (which create their own DNS records and certificates, unlike route patterns) and points `ALLOWED_ORIGINS` at the same domain
+   - fans out the `*.example` templates into per-env files (`apps/data-service/.{dev,staging,production}.vars`, `packages/data-ops/.env.{dev,staging,production}`)
+
+   Idempotent — re-runnable, never overwrites filled-in files. Leave the domain blank to decide later; deploys stay blocked until one is bound. The script's "Next steps" output lists every field that still needs a value.
 4. Provision a Neon database and fill `DATABASE_HOST/USERNAME/PASSWORD` in the env files created above. Set `BETTER_AUTH_SECRET` (`openssl rand -base64 32`) and `BETTER_AUTH_URL` per environment in `apps/data-service/.{dev,staging,production}.vars`.
 5. Run `pnpm run setup && pnpm run db:generate:dev && pnpm run db:migrate:dev`.
 6. Start dev: `pnpm run dev:data-service` (port 8788).
@@ -97,16 +102,29 @@ Uses [Vitest](https://vitest.dev) with workspace projects. Each package can also
 
 ## Deployment
 
-```bash
-pnpm run deploy:staging:data-service
-pnpm run deploy:production:data-service
-```
+Deploys run in CI ([.github/workflows/deploy.yml](./.github/workflows/deploy.yml)), not from a laptop.
 
-Secrets sync: `bash apps/data-service/sync-secrets.sh {env}`
+| Trigger | Deploys to |
+|---------|-----------|
+| Push to `main` | staging |
+| Push a `v*.*.*` tag | production |
+| Manual run (**Actions → Deploy → Run workflow**) | whichever you pick |
 
-### Cloudflare Account Override
+A merge alone never reaches production — that rule lives in [scripts/deploy-target.ts](./scripts/deploy-target.ts) and is covered by tests.
 
-To deploy to a different CF account, copy `.env.example` to `.env` and fill in `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN`.
+Each deploy uploads a version, sends 10% of traffic to it, then runs a readiness gate: it probes `GET /health/ready` — the endpoint that opens a real database connection, unlike `/health/live` — with the request pinned to the new version. Only a passing gate promotes it to 100%; a failing one halts the rollout and returns all traffic to the previous version.
+
+### Enabling deploys
+
+Until it is configured the deploy job **skips with a notice and the workflow stays green** — a fresh clone is never handed a red build it did not ask for. To turn it on:
+
+1. Add repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+2. Create GitHub environments `staging` and `production`, and give `production` a required reviewer.
+3. Bind a custom domain in `apps/data-service/wrangler.jsonc` — `pnpm run init-project` prompts for one. Without it there is nothing to probe, so the pipeline refuses to deploy rather than promote a version nobody is watching.
+
+No code change is needed at any point.
+
+Secrets for the Worker itself (database credentials, auth secret) are pushed separately: `bash apps/data-service/sync-secrets.sh {env}`.
 
 ## Package Docs
 

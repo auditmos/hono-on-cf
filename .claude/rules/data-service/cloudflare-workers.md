@@ -66,9 +66,9 @@ return response
 
 ## Deployment
 
-- Deploy via `pnpm deploy:staging` / `pnpm deploy:production`
-- Configure environments in `wrangler.jsonc`
-- Use preview deployments for testing
+- Deploys run in CI only — see `.claude/rules/cloudflare-deployment.md`. This package has no `deploy` script by design
+- Configure environments in `wrangler.jsonc`; bind hosts as custom domains, which `pnpm run init-project` prompts for
+- Test locally with `pnpm run dev`, and against a real version with a preview URL rather than a deploy
 
 ## Testing
 

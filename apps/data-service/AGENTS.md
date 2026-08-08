@@ -66,9 +66,9 @@ clients.post("/", requireAuth(), zValidator(...), handler)
 
 ```bash
 pnpm run dev                # local dev server (port 8788)
-pnpm run deploy:staging     # wrangler deploy --env staging
-pnpm run deploy:production  # wrangler deploy --env production
 ```
+
+Deployment is CI-only — see the Deployment section of the root `AGENTS.md`. This package intentionally has no `deploy` script: a local `wrangler deploy` replaces the running Worker in place, skipping the versioned upload, the canary and the readiness gate the pipeline is built around.
 
 ## Testing
 

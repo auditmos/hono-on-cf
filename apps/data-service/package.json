@@ -4,8 +4,6 @@
 	"private": true,
 	"license": "MIT",
 	"scripts": {
-		"deploy:staging": "wrangler deploy --env staging",
-		"deploy:production": "wrangler deploy --env production",
 		"dev": "wrangler dev --env dev --port 8788",
 		"cf-typegen": "wrangler types --env-interface BaseEnv --env dev",
 		"types": "tsc --noEmit",

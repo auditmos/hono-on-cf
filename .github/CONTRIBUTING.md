@@ -23,8 +23,8 @@ This guide will help you get started.
 │     → Rules auto-apply based on files being edited          │
 ├─────────────────────────────────────────────────────────────┤
 │  3. DEPLOY                                                  │
-│     pnpm deploy:staging:* → test                            │
-│     pnpm deploy:production:* → ship                         │
+│     merge to main      → CI deploys staging                 │
+│     push a v*.*.* tag  → CI deploys production              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -49,8 +49,9 @@ This guide will help you get started.
 # 3. Implement
 "Implement doc 003"
 
-# 4. Deploy
-pnpm deploy:staging:data-service
+# 4. Deploy — merge the PR; CI deploys staging from main.
+#    Tag a release when you want it in production.
+git tag v1.2.3 && git push origin v1.2.3
 ```
 
 ## Pull Requests

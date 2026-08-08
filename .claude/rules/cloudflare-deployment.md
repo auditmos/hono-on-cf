@@ -28,12 +28,20 @@
 - Zone SSL/TLS encryption mode MUST be **Full** or **Full (strict)**, never Flexible
 - Flexible + any HTTPS redirect = infinite redirect loop
 
-## Deploy Script Pattern
+## Deploys Go Through CI
 
-```jsonc
-// Standard wrangler (data-service)
-"deploy:staging": "wrangler deploy --env staging"
+Never add a `deploy` script to a package. `wrangler deploy` replaces the running Worker in place, which skips the versioned upload, the canary and the readiness gate.
+
+The pipeline in `.github/workflows/deploy.yml` is the only supported path:
+
 ```
+versions upload → versions deploy <id>@10 → gate on /health/ready → versions deploy <id>@100
+```
+
+- Trigger→environment routing lives in `scripts/deploy-target.ts` so it can be unit-tested, not in workflow YAML
+- Gate on the readiness probe, never liveness — liveness answers 200 from a Worker whose database is unreachable
+- Pin gate requests to the version under test with `Cloudflare-Workers-Version-Overrides`; at a 10% split an unpinned probe usually reaches the old version
+- Any capability needing credentials degrades to a skip with a notice, never a failure
 
 ## Debugging "Too Many Redirects"
 

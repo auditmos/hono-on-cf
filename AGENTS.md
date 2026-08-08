@@ -20,8 +20,7 @@ Each has its own `AGENTS.md` with package-specific patterns (`CLAUDE.md` symlink
 ```bash
 pnpm run setup                    # install dependencies
 pnpm run dev:data-service         # API dev (port 8788)
-pnpm run deploy:staging:data-service
-pnpm run deploy:production:data-service
+pnpm run init-project             # bootstrap: name, custom domain, env files
 pnpm run db:seed:dev / db:seed:staging / db:seed:production
 pnpm run lint                     # check all (formatting + linting)
 pnpm run lint:fix                 # auto-fix all
@@ -44,6 +43,16 @@ All four run on every pull request, so documentation drift and stale generated t
 
 - Max 500 lines per source file — split if exceeding
 - Biome config: `biome.json` (root), plugins: `.biome-plugins/*.grit`
+
+## Deployment
+
+Deploys run in CI (`.github/workflows/deploy.yml`), never from a local command — there is no `deploy` script in any package, deliberately.
+
+- Push to `main` → staging. A `v*.*.*` tag → production. A manual run picks either.
+- The trigger→environment rule lives in `scripts/deploy-target.ts`, not in workflow YAML, so it is unit-tested.
+- Every deploy uploads a version, canaries 10% of traffic, gates on `GET /health/ready` pinned to that version, then promotes to 100%. A failed gate halts and rolls back.
+- Absent `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` the job skips with a notice and stays green.
+- An environment binding no custom domain cannot be probed, so the pipeline refuses it rather than deploying blind.
 
 ## Rules
 

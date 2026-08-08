@@ -6,8 +6,6 @@
 		"prepare": "simple-git-hooks",
 		"setup": "pnpm i",
 		"dev:data-service": "pnpm run --filter data-service dev",
-		"deploy:staging:data-service": "pnpm run --filter data-service deploy:staging",
-		"deploy:production:data-service": "pnpm run --filter data-service deploy:production",
 		"db:generate:dev": "pnpm run --filter data-ops db:generate:dev",
 		"db:generate:staging": "pnpm run --filter data-ops db:generate:staging",
 		"db:generate:production": "pnpm run --filter data-ops db:generate:production",

@@ -108,3 +108,52 @@ describe("root agent file depth", () => {
 		expect(rootHeadings).toBeGreaterThanOrEqual(minPackageHeadings);
 	});
 });
+
+describe("deployment documentation describes the pipeline, not a local command", () => {
+	// doc-drift scans only agent-facing docs. The human-facing ones are where the
+	// superseded deploy path was written down, so they are checked here.
+	const DEPLOY_DOCS = [
+		"README.md",
+		"AGENTS.md",
+		"apps/data-service/AGENTS.md",
+		"apps/data-service/README.md",
+		".github/CONTRIBUTING.md",
+		".claude/rules/cloudflare-deployment.md",
+		".claude/rules/data-service/cloudflare-workers.md",
+	];
+
+	const SUPERSEDED = [
+		"deploy:staging:data-service",
+		"deploy:production:data-service",
+		"pnpm run deploy:staging",
+		"pnpm run deploy:production",
+		"pnpm deploy:staging",
+		"pnpm deploy:production",
+		"wrangler deploy --env",
+	];
+
+	it("names no superseded manual deploy command", () => {
+		for (const doc of DEPLOY_DOCS) {
+			const content = read(doc);
+			for (const command of SUPERSEDED) {
+				expect(content, `${doc} still documents "${command}"`).not.toContain(command);
+			}
+		}
+	});
+
+	it("no package still offers the superseded deploy scripts", () => {
+		// Documentation and support have to be the same path. Leaving the scripts
+		// behind leaves a replace-in-place deploy that skips the readiness gate.
+		for (const manifest of ["package.json", "apps/data-service/package.json"]) {
+			const scripts = Object.keys(JSON.parse(read(manifest)).scripts ?? {});
+			expect(scripts.filter((name) => name.startsWith("deploy:"))).toEqual([]);
+		}
+	});
+
+	it("points the reader at the pipeline instead", () => {
+		const readme = read("README.md");
+		expect(readme).toContain(".github/workflows/deploy.yml");
+		expect(readme).toMatch(/CLOUDFLARE_API_TOKEN/);
+		expect(readme).toMatch(/readiness/i);
+	});
+});
