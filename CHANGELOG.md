@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/auditmos/hono-on-cf/compare/v1.12.0...v1.13.0) (2026-08-08)
+
+
+### Features
+
+* **template:** prompt for a custom domain and document the deploy pipeline ([0ab42eb](https://github.com/auditmos/hono-on-cf/commit/0ab42eb2b00c7793139f7f93beb2453bb33eacb8)), closes [#54](https://github.com/auditmos/hono-on-cf/issues/54)
+
 # [1.12.0](https://github.com/auditmos/hono-on-cf/compare/v1.11.0...v1.12.0) (2026-08-08)
 
 
