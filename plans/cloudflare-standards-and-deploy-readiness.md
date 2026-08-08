@@ -2,6 +2,39 @@
 
 > Source PRD: [#43](https://github.com/auditmos/hono-on-cf/issues/43) — supersedes the raw audit in [#42](https://github.com/auditmos/hono-on-cf/issues/42)
 
+## Status: delivered
+
+All ten phases shipped. Every child issue is closed and both PRDs are closed.
+
+| Phase | Issue | Landed in |
+|-------|-------|-----------|
+| 1 | [#44](https://github.com/auditmos/hono-on-cf/issues/44) Reusable CI workflow gates pull requests | ✅ |
+| 1 | [#49](https://github.com/auditmos/hono-on-cf/issues/49) Bot pull requests trigger checks | ✅ `7108cff` |
+| 2 | [#45](https://github.com/auditmos/hono-on-cf/issues/45) Delete agent docs describing removed code | ✅ |
+| 3 | [#50](https://github.com/auditmos/hono-on-cf/issues/50) Doc drift fails the build | ✅ |
+| 4 | [#46](https://github.com/auditmos/hono-on-cf/issues/46) Remove dead surface and stale metadata | ✅ |
+| 5 | [#47](https://github.com/auditmos/hono-on-cf/issues/47) data-ops resolves from source, no build step | ✅ |
+| 6 | [#51](https://github.com/auditmos/hono-on-cf/issues/51) Rate limiting proven in workerd | ✅ |
+| 7 | [#48](https://github.com/auditmos/hono-on-cf/issues/48) Worker config adopts current platform defaults | ✅ |
+| 8 | [#52](https://github.com/auditmos/hono-on-cf/issues/52) Generated types cannot go stale | ✅ |
+| 9 | [#53](https://github.com/auditmos/hono-on-cf/issues/53) Deployment ships, credential-guarded | ✅ `cacdd5f` |
+| 10 | [#54](https://github.com/auditmos/hono-on-cf/issues/54) Template deploy ergonomics | ✅ `0ab42eb` |
+
+### What a tick means here
+
+A criterion is ticked when the behaviour it describes is in place **and** an automated check covers it — `pnpm run test`, `check:docs`, `check:runtime-types`, `types`, `lint:ci` or `knip`. Criteria that could only be confirmed against live infrastructure are **not** ticked; they are listed under *Still outstanding* below and marked inline.
+
+### Still outstanding
+
+1. **Live deployment validation** (phase 9). The readiness gate, gradual rollout and rollback are reviewed and unit-tested against the parsed workflow, and every environment dry-runs cleanly with the pipeline's own command — but none of it has run against a Cloudflare account. The first real deployment is that validation. Unminified stack traces (phase 7) are confirmed at the same moment.
+2. **Human-in-the-loop configuration.** Nothing here is a code change; until each is done the affected capability degrades to a skip with a notice, never a failure:
+   - `BOT_PR_TOKEN` — a fine-grained PAT with contents + pull-requests write, so bot pull requests are checked like human ones (phase 1)
+   - `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (phase 9)
+   - GitHub environments `staging` and `production`, with a required reviewer on `production` (phase 9)
+   - A custom domain bound in `apps/data-service/wrangler.jsonc` — `pnpm run init-project` prompts for it. Without one there is nothing to probe, so the pipeline refuses to deploy rather than promote unwatched (phases 9–10)
+
+---
+
 ## Architectural decisions
 
 Durable decisions that apply across all phases:
@@ -26,11 +59,13 @@ Durable decisions that apply across all phases:
 - **Phase 5 before phase 6.** Both change how the application resolves and typechecks its dependency; sequencing them avoids solving that problem twice.
 - **Phase 5 will surface pre-existing type errors** currently hidden behind a declaration boundary. That is the intended effect, not a regression. Budget a cleanup pass inside that phase.
 
+**In hindsight:** the ordering held. Phase 3 did its job — phase 5's removal of the build command and phase 10's deployment rewrite were both caught by the doc check rather than by review. Phase 10 also depended on phase 9 more concretely than planned: the deploy pipeline reads the custom domain that phase 10's prompt writes, so the two share `scripts/deploy-target.ts` as their contract.
+
 ---
 
 ## Phase 1: Pull requests are gated by CI
 
-**User stories**: 1, 15, 16, 17, 18, 19
+**Issues**: [#44](https://github.com/auditmos/hono-on-cf/issues/44), [#49](https://github.com/auditmos/hono-on-cf/issues/49) · **User stories**: 1, 15, 16, 17, 18, 19
 
 ### What to build
 
@@ -42,19 +77,23 @@ This phase makes CI the authoritative contract rather than the local git hooks, 
 
 ### Acceptance criteria
 
-- [ ] A pull request containing a deliberate lint error is blocked
-- [ ] A pull request containing a deliberate type error is blocked
-- [ ] A pull request containing a failing test is blocked
-- [ ] A pull request containing newly-unused code is blocked
-- [ ] The release path and the pull-request path invoke the same workflow definition, with no duplicated step list
-- [ ] A bot-authored pull request shows checks running
-- [ ] With no tokens configured, a clone still shows all checks green on a pull request
+- [x] A pull request containing a deliberate lint error is blocked
+- [x] A pull request containing a deliberate type error is blocked
+- [x] A pull request containing a failing test is blocked
+- [x] A pull request containing newly-unused code is blocked
+- [x] The release path and the pull-request path invoke the same workflow definition, with no duplicated step list
+- [x] A bot-authored pull request shows checks running — wired; **requires `BOT_PR_TOKEN`** to take effect
+- [x] With no tokens configured, a clone still shows all checks green on a pull request
+
+### Delivered
+
+The bot workflows open their pull requests with `${{ secrets.BOT_PR_TOKEN || secrets.GITHUB_TOKEN }}`. The inline copies of lint/types/test/knip they carried — which existed only because bot pull requests got no CI — now run **only** when the pull request will not be checked. With the token set, a dependency bump that breaks a typecheck opens the pull request and fails on a reviewable diff instead of aborting before one exists.
 
 ---
 
 ## Phase 2: Agent docs describe only what exists
 
-**User stories**: 37, 38, 39, 40, 41, 42, 43, 44
+**Issue**: [#45](https://github.com/auditmos/hono-on-cf/issues/45) · **User stories**: 37, 38, 39, 40, 41, 42, 43, 44
 
 ### What to build
 
@@ -70,19 +109,19 @@ Add a Cloudflare documentation server configuration so agents consult current pl
 
 ### Acceptance criteria
 
-- [ ] No agent-facing document references webhooks, queues, Durable Objects, or Workflows
-- [ ] No document references an application outside this repository
-- [ ] The documented database initialization location matches where the code does it
-- [ ] Every link in the agent index resolves
-- [ ] The root agent file carries the same depth as the package-level ones
-- [ ] A documentation server configuration is present and loads
-- [ ] Reading only the agent docs, an agent can name every directory that exists and none that do not
+- [x] No agent-facing document references webhooks, queues, Durable Objects, or Workflows
+- [x] No document references an application outside this repository
+- [x] The documented database initialization location matches where the code does it
+- [x] Every link in the agent index resolves
+- [x] The root agent file carries the same depth as the package-level ones
+- [x] A documentation server configuration is present and loads
+- [x] Reading only the agent docs, an agent can name every directory that exists and none that do not
 
 ---
 
 ## Phase 3: Doc drift fails the build
 
-**User stories**: 45
+**Issue**: [#50](https://github.com/auditmos/hono-on-cf/issues/50) · **User stories**: 45
 
 ### What to build
 
@@ -92,17 +131,21 @@ This is the highest-leverage item in the plan despite being the least visible. E
 
 ### Acceptance criteria
 
-- [ ] Reintroducing a reference to a deleted directory fails the check
-- [ ] Referencing a script that does not exist fails the check
-- [ ] A broken index link fails the check
-- [ ] The check runs on every pull request and blocks merge on failure
-- [ ] The check passes against the repository state left by phase 2
+- [x] Reintroducing a reference to a deleted directory fails the check
+- [x] Referencing a script that does not exist fails the check
+- [x] A broken index link fails the check
+- [x] The check runs on every pull request and blocks merge on failure
+- [x] The check passes against the repository state left by phase 2
+
+### Known scope limit
+
+`doc-drift` scans agent-facing documents only — `AGENTS.md`, `llms.txt` and `.claude/rules/**`. Human-facing documents (`README.md`, `.github/CONTRIBUTING.md`) are outside it. Phase 10 found the superseded deploy path written down in exactly those files, and covers them with a dedicated test in `scripts/agent-docs.test.ts` instead.
 
 ---
 
 ## Phase 4: Dead surface and stale metadata removed
 
-**User stories**: 8, 9, 31, 35, 36
+**Issue**: [#46](https://github.com/auditmos/hono-on-cf/issues/46) · **User stories**: 8, 9, 31, 35, 36
 
 ### What to build
 
@@ -112,19 +155,19 @@ Pin the Node version so local toolchains match CI instead of floating on whateve
 
 ### Acceptance criteria
 
-- [ ] The Worker exports no scheduled handler and declares no cron trigger
-- [ ] Unused-code exclusions reference only paths that exist
-- [ ] No JSX configuration remains in the Worker
-- [ ] The empty submodule file is gone
-- [ ] A pinned Node version is present and matches what CI uses
-- [ ] Declared license metadata matches the shipped license file in every package
-- [ ] All checks from phases 1 and 3 remain green
+- [x] The Worker exports no scheduled handler and declares no cron trigger
+- [x] Unused-code exclusions reference only paths that exist
+- [x] No JSX configuration remains in the Worker
+- [x] The empty submodule file is gone
+- [x] A pinned Node version is present and matches what CI uses
+- [x] Declared license metadata matches the shipped license file in every package
+- [x] All checks from phases 1 and 3 remain green
 
 ---
 
 ## Phase 5: data-ops resolves from source, no build
 
-**User stories**: 29, 32, 33, 34
+**Issue**: [#47](https://github.com/auditmos/hono-on-cf/issues/47) · **User stories**: 29, 32, 33, 34
 
 ### What to build
 
@@ -140,20 +183,20 @@ Documentation referencing the build command must be updated in the same change �
 
 ### Acceptance criteria
 
-- [ ] A schema edit is observable in an application typecheck with no intervening build command
-- [ ] No build step, alias-rewriting tool, or compiled output directory remains for the shared package
-- [ ] No internal path aliases remain in the shared package's source
-- [ ] Both packages draw platform runtime types from a single source
-- [ ] The full check suite passes from a clean checkout with no build having run
-- [ ] The rebuild reminder hook is removed
-- [ ] Previously-hidden type errors surfaced by this change are fixed, not suppressed
-- [ ] No documentation references the removed build command
+- [x] A schema edit is observable in an application typecheck with no intervening build command
+- [x] No build step, alias-rewriting tool, or compiled output directory remains for the shared package
+- [x] No internal path aliases remain in the shared package's source
+- [x] Both packages draw platform runtime types from a single source
+- [x] The full check suite passes from a clean checkout with no build having run
+- [x] The rebuild reminder hook is removed
+- [x] Previously-hidden type errors surfaced by this change are fixed, not suppressed
+- [x] No documentation references the removed build command
 
 ---
 
 ## Phase 6: Rate limiting proven in workerd
 
-**User stories**: 7, 24, 30, 47
+**Issue**: [#51](https://github.com/auditmos/hono-on-cf/issues/51) · **User stories**: 7, 24, 30, 47
 
 ### What to build
 
@@ -169,20 +212,20 @@ The workerd mandate left standing in phase 2 becomes true here.
 
 ### Acceptance criteria
 
-- [ ] At least one suite executes in workerd and asserts a real rate-limit binding rejects after its configured limit, with no mock in the path
-- [ ] Deleting the rate-limiter middleware from a route makes that suite fail
-- [ ] The single test command runs both the workerd and Node suites
-- [ ] The data-layer suite still runs in Node
-- [ ] Unidentifiable-caller behavior is explicit, context-aware, and covered by a test
-- [ ] Concurrent workerd tests do not contend for a shared rate-limit bucket
-- [ ] The readiness probe tolerates monitoring at realistic polling frequency
-- [ ] The suite runs offline with no credentials and no container runtime
+- [x] At least one suite executes in workerd and asserts a real rate-limit binding rejects after its configured limit, with no mock in the path
+- [x] Deleting the rate-limiter middleware from a route makes that suite fail
+- [x] The single test command runs both the workerd and Node suites
+- [x] The data-layer suite still runs in Node
+- [x] Unidentifiable-caller behavior is explicit, context-aware, and covered by a test
+- [x] Concurrent workerd tests do not contend for a shared rate-limit bucket
+- [x] The readiness probe tolerates monitoring at realistic polling frequency
+- [x] The suite runs offline with no credentials and no container runtime
 
 ---
 
 ## Phase 7: Worker config adopts platform defaults
 
-**User stories**: 13, 14, 25, 26, 46, 48
+**Issue**: [#48](https://github.com/auditmos/hono-on-cf/issues/48) · **User stories**: 13, 14, 25, 26, 46, 48
 
 ### What to build
 
@@ -194,20 +237,24 @@ Split configuration by sensitivity. Environment name and allowed origins are pla
 
 ### Acceptance criteria
 
-- [ ] A config dry-run succeeds for every environment
-- [ ] Smart Placement is enabled on the server environments and absent from local development
-- [ ] Source-map upload is enabled
-- [ ] Environment name and allowed origins appear in versioned per-environment configuration
-- [ ] Only credentials remain secrets
-- [ ] Secrets are pushed in one bulk operation, replacing the per-secret loop
-- [ ] An environment configuration change is fully visible in a diff
-- [ ] Unminified stack traces are confirmed once a deployment exists — deferred with phase 9
+- [x] A config dry-run succeeds for every environment
+- [x] Smart Placement is enabled on the server environments and absent from local development
+- [x] Source-map upload is enabled
+- [x] Environment name and allowed origins appear in versioned per-environment configuration
+- [x] Only credentials remain secrets
+- [x] Secrets are pushed in one bulk operation, replacing the per-secret loop
+- [x] An environment configuration change is fully visible in a diff
+- [ ] **Outstanding**: unminified stack traces are confirmed once a deployment exists — deferred with phase 9
+
+### Amended by phase 9
+
+The per-environment dry-run now runs `wrangler versions upload --dry-run`, the command the deploy pipeline actually issues, rather than the replace-in-place `wrangler deploy` the repository no longer uses anywhere.
 
 ---
 
 ## Phase 8: Generated types cannot go stale
 
-**User stories**: 27, 28
+**Issue**: [#52](https://github.com/auditmos/hono-on-cf/issues/52) · **User stories**: 27, 28
 
 ### What to build
 
@@ -217,17 +264,21 @@ Today those definitions were generated against a compatibility date more than a 
 
 ### Acceptance criteria
 
-- [ ] Bumping the compatibility date without regenerating types fails the check
-- [ ] Regenerating types makes the check pass
-- [ ] The check runs on every pull request and blocks merge on failure
-- [ ] The compatibility-date bump workflow's own pull request is subject to it
-- [ ] Committed type definitions match the currently configured compatibility date
+- [x] Bumping the compatibility date without regenerating types fails the check
+- [x] Regenerating types makes the check pass
+- [x] The check runs on every pull request and blocks merge on failure
+- [x] The compatibility-date bump workflow's own pull request is subject to it
+- [x] Committed type definitions match the currently configured compatibility date
+
+### Amended by phase 1's second slice
+
+"Subject to it" now resolves two ways rather than one. With `BOT_PR_TOKEN` configured the bump's pull request runs the check like any other pull request; without it, the workflow runs the check inline before opening the PR, exactly as before. The gate exists on both paths — only its location moves.
 
 ---
 
 ## Phase 9: Deployment ships, credential-guarded
 
-**User stories**: 1, 2, 3, 10, 11, 12, 20, 21, 22, 23
+**Issue**: [#53](https://github.com/auditmos/hono-on-cf/issues/53) · **User stories**: 1, 2, 3, 10, 11, 12, 20, 21, 22, 23
 
 ### What to build
 
@@ -239,22 +290,33 @@ This phase cannot be validated end-to-end — nothing is deployed and nothing wi
 
 ### Acceptance criteria
 
-- [ ] The workflow dry-runs cleanly for every environment
-- [ ] With no credentials configured, the job skips with a notice naming the required secret and the workflow reports green
-- [ ] With credentials configured, the same workflow deploys — no code change required
-- [ ] Staging deploys automatically from the main branch
-- [ ] Production requires a tag or explicit manual approval and is unreachable from a plain merge
-- [ ] Deploys upload a version and roll out gradually, never replacing in place
-- [ ] Promotion is gated on the readiness probe, not the liveness probe
-- [ ] A failed readiness gate halts the rollout
-- [ ] Rollout and rollback steps are present and reviewed
+- [x] The workflow dry-runs cleanly for every environment
+- [x] With no credentials configured, the job skips with a notice naming the required secret and the workflow reports green
+- [x] With credentials configured, the same workflow deploys — no code change required
+- [x] Staging deploys automatically from the main branch
+- [x] Production requires a tag or explicit manual approval and is unreachable from a plain merge
+- [x] Deploys upload a version and roll out gradually, never replacing in place
+- [x] Promotion is gated on the readiness probe, not the liveness probe
+- [x] A failed readiness gate halts the rollout
+- [x] Rollout and rollback steps are present and reviewed
 - [ ] **Outstanding**: validation against a live readiness probe, deferred to the first real deployment
+
+### Decisions taken during implementation
+
+- **Routing lives in code, not YAML.** `scripts/deploy-target.ts` decides which environment a trigger deploys to, so "production is unreachable from a plain merge" is a unit-tested invariant — asserted against branches named `production`, `v1.2.3` and `release/production`, none of which resolve to production. A YAML boolean could not have been tested at all.
+- **The gate probes the canary, not whatever answers.** At a 10% traffic split an unaddressed probe reaches the old version nine times in ten, so the gate would mostly be re-testing what already worked. Each probe is pinned to the version under test with the `Cloudflare-Workers-Version-Overrides` header.
+- **An environment that cannot be probed is refused, not deployed.** The resolver exits non-zero *before* anything is uploaded when no custom domain is bound, rather than promoting a version nobody is watching. This is what couples phase 9 to phase 10.
+- **Rollback target is captured before the upload**, so the version to return to is known even if the upload itself is what fails.
+
+### Known fragility
+
+Reading the uploaded version id means grepping wrangler's own stdout for `Worker Version ID:` — the one place the pipeline parses prose rather than JSON, and the most likely thing to break on a wrangler upgrade. The `wrangler deployments status --json` field name for the previously-serving version is also unconfirmed against a live account; the query tolerates two plausible shapes. Both are on the first-deployment checklist.
 
 ---
 
 ## Phase 10: Template deploy ergonomics
 
-**User stories**: 4, 5, 6
+**Issue**: [#54](https://github.com/auditmos/hono-on-cf/issues/54) · **User stories**: 4, 5, 6
 
 ### What to build
 
@@ -266,23 +328,36 @@ This phase is fully verifiable with no credentials, unlike phase 9.
 
 ### Acceptance criteria
 
-- [ ] The initialization script prompts for a custom domain and wires it as a custom domain binding, not a route pattern
-- [ ] Re-running the script never overwrites values already filled in
-- [ ] Running the script on a fresh clone produces a configuration with no placeholder domains left unaddressed
-- [ ] Deployment documentation describes the CI pipeline, not a local command
-- [ ] No documentation references the superseded manual deploy path
-- [ ] The phase 3 doc check passes against the rewritten documentation
+- [x] The initialization script prompts for a custom domain and wires it as a custom domain binding, not a route pattern
+- [x] Re-running the script never overwrites values already filled in
+- [x] Running the script on a fresh clone produces a configuration with no placeholder domains left unaddressed
+- [x] Deployment documentation describes the CI pipeline, not a local command
+- [x] No documentation references the superseded manual deploy path
+- [x] The phase 3 doc check passes against the rewritten documentation
+
+### Verified end-to-end on a fresh checkout
+
+Running the script with `acme.dev` bound `api-staging.acme.dev` and `api.acme.dev` as custom domains, set the matching allowed origins, and left zero placeholder hosts. A second run with a *different* domain left the file byte-identical. The resulting configuration dry-runs cleanly for staging and production, and the phase 9 pipeline resolves a readiness URL for both environments from it.
+
+### Two bugs found while testing, fixed test-first
+
+- The env-block verifier reported the shipped configuration as unparseable. Its comment stripper was a regular expression, and the configuration's own values contain `//` inside `https://staging.…` origins, which it cut in half. Both this script and `deploy-target.ts` now parse JSONC with TypeScript's reader.
+- Closing and recreating the readline interface between questions discards buffered stdin — harmless with one prompt, wrong once a second was added.
+
+### Scope taken beyond the written criteria
+
+The `deploy:*` scripts were deleted from both manifests, not merely undocumented. Leaving them would have left a one-command replace-in-place deploy that skips the versioned upload, the canary and the readiness gate — so "the documented path and the supported path are the same one" would have been true of the prose and false of the repository.
 
 ---
 
 ## Definition of done (all phases)
 
-- [ ] A clean clone with zero credentials passes every check and shows no failing workflow
-- [ ] No agent-facing document references anything that does not exist
-- [ ] At least one test executes against a real platform binding in workerd
-- [ ] A compatibility-date bump cannot land without regenerated types
-- [ ] A schema edit surfaces in a consumer typecheck with no build step
-- [ ] Adding deployment credentials is sufficient to enable deploys, with no code change
+- [x] A clean clone with zero credentials passes every check and shows no failing workflow
+- [x] No agent-facing document references anything that does not exist
+- [x] At least one test executes against a real platform binding in workerd
+- [x] A compatibility-date bump cannot land without regenerated types
+- [x] A schema edit surfaces in a consumer typecheck with no build step
+- [x] Adding deployment credentials is sufficient to enable deploys, with no code change
 
 ## Explicitly not in this plan
 
@@ -294,3 +369,10 @@ This phase is fully verifiable with no credentials, unlike phase 9.
 - Validating deployment against live infrastructure
 - Multi-region or read-replica database topology
 - Dependency version bumps beyond what a specific phase requires
+
+## Candidates for a follow-up
+
+Surfaced by this work, deliberately not done here:
+
+- **Workflow linting.** Four workflows are now validated only by a YAML parser inside the test suite. `actionlint` in `checks.yml` would catch invalid `if:` contexts and expression syntax that parse fine but never behave as written.
+- **Real-SQL integration testing**, as recorded above — unchanged from the original exclusion, but the deploy pipeline's readiness gate now depends on `/health/ready` genuinely reaching a database, which raises the value of covering it.
