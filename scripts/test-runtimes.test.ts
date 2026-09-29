@@ -8,7 +8,7 @@ function read(relPath: string): string {
 	return readFileSync(join(ROOT, relPath), "utf8");
 }
 
-const WORKERS_POOL = "@cloudflare/vitest-pool-workers";
+const WORKERS_POOL = "@cloudflare/vitest-plugin";
 
 /**
  * The Worker suite runs in workerd so it reaches real bindings; the data-layer

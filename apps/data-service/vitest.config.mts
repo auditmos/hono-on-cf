@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
+import { cloudflareTest } from "@cloudflare/vitest-plugin";
 import { defineProject } from "vitest/config";
 
 // The Worker suite runs inside workerd, not Node, so tests reach the same
