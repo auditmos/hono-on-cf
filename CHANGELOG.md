@@ -1,3 +1,10 @@
+## [1.13.1](https://github.com/auditmos/hono-on-cf/compare/v1.13.0...v1.13.1) (2026-09-29)
+
+
+### Bug Fixes
+
+* **ci:** regenerate runtime types in the weekly deps bump ([0a0d2f0](https://github.com/auditmos/hono-on-cf/commit/0a0d2f0f2390727a863514086374a7d44e4110a3))
+
 # [1.13.0](https://github.com/auditmos/hono-on-cf/compare/v1.12.0...v1.13.0) (2026-08-08)
 
 
