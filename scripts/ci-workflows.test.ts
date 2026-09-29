@@ -94,6 +94,31 @@ describe("compatibility-date bump workflow", () => {
 	});
 });
 
+describe("dependency bump workflow", () => {
+	const steps = collectSteps(readWorkflow("deps-update.yml"));
+	const indexOfRun = (fragment: string): number =>
+		steps.findIndex((step) => step.run?.includes(fragment));
+
+	it("regenerates the runtime types a wrangler bump invalidates, before opening its pull request", () => {
+		// A wrangler bump ships a newer workerd, which stales the committed types;
+		// without regenerating, the freshness check fails every weekly run.
+		const bump = indexOfRun("pnpm run deps:update");
+		const typegen = indexOfRun("cf-typegen");
+		const open = steps.findIndex((step) =>
+			step.uses?.startsWith("peter-evans/create-pull-request"),
+		);
+
+		expect(bump).toBeGreaterThanOrEqual(0);
+		expect(typegen).toBeGreaterThan(bump);
+		expect(open).toBeGreaterThan(typegen);
+	});
+
+	it("keeps the Worker's secret declarations when it regenerates", () => {
+		// CI has no .dev.vars; generating without one silently drops secrets from Env.
+		expect(steps[indexOfRun("cf-typegen")]?.run).toContain(".example.vars");
+	});
+});
+
 describe("bot pull requests trigger checks", () => {
 	const BOT_WORKFLOWS = ["deps-update.yml", "compat-date.yml"] as const;
 

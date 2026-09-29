@@ -70,6 +70,19 @@ jobs:
       - name: Refresh lockfile
         run: pnpm install --no-frozen-lockfile
 
+      # A wrangler bump ships a newer workerd, which invalidates the committed
+      # runtime types, so regenerate them in the same pull request. Without this
+      # the freshness check fails every run that picks up a wrangler release.
+      - name: Regenerate runtime types
+        run: |
+          set -euo pipefail
+          # `wrangler types` reads .dev.vars to declare the Worker's secrets on
+          # Env, and CI has none. Seed it from the committed template — only its
+          # key set reaches the generated types, never the values.
+          cp apps/data-service/.example.vars apps/data-service/.dev.vars
+          pnpm --filter data-service cf-typegen
+          rm apps/data-service/.dev.vars
+
       # Gates only where the pull request itself will not be checked. With the
       # token set these run on the pull request instead, so a bump that breaks a
       # typecheck fails on a reviewable diff rather than aborting before one exists.
