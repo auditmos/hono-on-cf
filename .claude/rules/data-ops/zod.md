@@ -12,13 +12,13 @@ paths:
 - Use descriptive schema names ending in `Schema`
 
 ```ts
-export const userSchema = z.object({
-  id: z.string().uuid(),
-  email: z.string().email(),
+export const UserSchema = z.object({
+  id: z.uuid(),
+  email: z.email(),
   name: z.string().min(1).max(100),
 })
 
-export type User = z.infer<typeof userSchema>
+export type User = z.infer<typeof UserSchema>
 ```
 
 ## Validation Patterns
@@ -27,23 +27,22 @@ export type User = z.infer<typeof userSchema>
 - Return structured results, don't throw
 
 ```ts
-const result = userSchema.safeParse(input)
+const result = UserSchema.safeParse(input)
 if (!result.success) {
-  return { ok: false, errors: result.error.flatten() }
+  return { ok: false, errors: z.flattenError(result.error) }
 }
 return { ok: true, data: result.data }
 ```
 
 ## Schema Composition
 
-- Use `.extend()` to add fields
+- Use `.extend()` to add fields, and `A.extend(B.shape)` to combine two schemas
 - Use `.pick()` / `.omit()` for partial schemas
-- Use `.merge()` to combine schemas
 - Use `.partial()` for optional fields
 
 ```ts
-const createUserSchema = userSchema.omit({ id: true })
-const updateUserSchema = userSchema.partial().required({ id: true })
+const UserCreateSchema = UserSchema.omit({ id: true })
+const UserUpdateSchema = UserSchema.partial().required({ id: true })
 ```
 
 ## Common Patterns

@@ -39,7 +39,6 @@ const { keys } = await env.MY_KV.list({ prefix: 'user:' })
 ## KV - Best Practices
 
 - Local dev uses local KV by default
-- Set `remote: true` in wrangler to test against prod
 - Wrap operations in try/catch
 - Check for null (key doesn't exist)
 

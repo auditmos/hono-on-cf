@@ -31,4 +31,4 @@ Services return `Result<T>` — never throw. `Result<T>` is the only service-lay
 `AppError` shape: `code`, `message`, `status`, optional `field`.
 Handlers unwrap via `resultToResponse`. Unexpected errors propagate to global `onErrorHandler`.
 
-Middleware that needs to short-circuit (auth, rate limit, validation) throws `HTTPException` from `hono/http-exception`; the global handler maps it to a JSON response. Do not introduce a dedicated `ApiError` class — it was removed (#29) because nothing threw it.
+Middleware that needs to short-circuit (auth, rate limit, validation) throws `HTTPException` from `hono/http-exception`; the global handler maps it to a JSON response. Do not introduce a dedicated `ApiError` class — `HTTPException` and `Result<T>` cover every case.

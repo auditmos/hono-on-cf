@@ -20,17 +20,6 @@ export const users = pgTable('users', {
 })
 ```
 
-## Type Inference
-
-- Use `InferSelectModel<typeof table>` for select types
-- Use `InferInsertModel<typeof table>` for insert types
-- Export types alongside tables
-
-```ts
-export type User = InferSelectModel<typeof users>
-export type NewUser = InferInsertModel<typeof users>
-```
-
 ## Query Patterns
 
 - Use SQL-like API for complex queries with joins
@@ -61,11 +50,5 @@ const user = await db.query.users.findFirst({
 ## Queries Module
 
 - Place queries in `{domain}/queries.ts`
-- Accept `db` as first parameter for testability
+- Get the connection with `getDb()` inside each query — queries take no `db` parameter (see `neon.md`)
 - Return typed results
-
-```ts
-export async function getUserById(db: Database, id: string): Promise<User | null> {
-  return db.query.users.findFirst({ where: eq(users.id, id) })
-}
-```

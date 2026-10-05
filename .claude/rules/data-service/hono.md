@@ -7,31 +7,20 @@ paths:
 
 ## App Setup
 
-- Type bindings via `Hono<{ Bindings: Env }>`
+- Type bindings via `Hono<{ Bindings: Env }>` (`Env` is ambient — no import)
 - Access env via `c.env`, not `process.env`
-- Export `app.fetch` for Workers
-
-```ts
-import { Hono } from 'hono'
-import type { Env } from './types'
-
-const app = new Hono<{ Bindings: Env }>()
-
-export default {
-  fetch: app.fetch,
-}
-```
+- `App` in `apps/data-service/src/hono/app.ts` is not the Worker's default export: the `WorkerEntrypoint` class in `apps/data-service/src/index.ts` forwards `fetch()` to `App.fetch` (see `cloudflare-workers.md`)
 
 ## Middleware Chain
 
-Apply in order: requestId → errorHandler → cors → auth → rateLimiter → validator
+Global, in `app.ts`: `requestId()` → `App.onError(onErrorHandler)` → CORS. Auth, rate limiting and validation are per route, in that order — not mounted on a path prefix:
 
 ```ts
-app.use('*', requestId())
-app.use('*', errorHandler())
-app.use('*', cors())
-app.use('/api/*', requireAuth())
-app.use('/api/*', rateLimiter())
+App.use("*", requestId());
+App.onError(onErrorHandler);
+App.use("*", createCorsMiddleware());
+
+clients.post("/", requireAuth(), zValidator("json", ClientCreateRequestSchema), handler);
 ```
 
 ## Route Structure
@@ -41,13 +30,11 @@ app.use('/api/*', rateLimiter())
 - Keep handlers focused on HTTP concerns
 
 ```ts
-// handlers/users.ts
-export const getUser = async (c: Context) => {
-  const { id } = c.req.param()
-  const result = await userService.getById(c.env, id)
-  if (!result) return c.json({ error: 'Not found' }, 404)
-  return c.json(result)
-}
+// handlers/client-handlers.ts
+clients.get("/:id", requireAuth(), zValidator("param", IdParamSchema), async (c) => {
+  const { id } = c.req.valid("param");
+  return resultToResponse(c, await clientService.getClientById(id));
+});
 ```
 
 ## Request Validation
@@ -92,12 +79,7 @@ const data = UserCreateSchema.parse(body)
 
 ## Response Patterns
 
-```ts
-// Success
-return c.json({ data: user })
-return c.json({ data: users, meta: { total, page } })
-
-// Error
-return c.json({ error: 'Not found' }, 404)
-return c.json({ error: 'Validation failed', details: errors }, 400)
-```
+- Success: the service's data as-is — `c.json(result.data, status)`; a delete returns `c.body(null, 204)`
+- Lists: `{ data, pagination: { total, limit, offset, hasMore } }` (`ClientListResponseSchema`)
+- Service errors: `{ error, code }` with the `AppError` status, via `resultToResponse`
+- Thrown errors, written by `onErrorHandler`: `{ error, requestId }` for an `HTTPException`, `{ error }` with 500 for anything else

@@ -33,18 +33,8 @@ export default class extends WorkerEntrypoint<Env> {
 ## Env Bindings
 
 - Run `pnpm cf-typegen` to generate types from wrangler.jsonc and environment variables
-- Above script modifies `Env` interface in **worker-configuration.d.ts**
+- It regenerates `BaseEnv` in **worker-configuration.d.ts**; `service-bindings.d.ts` derives `Env` from it, widening the per-environment vars to `string`
 - Access via `this.env` or `c.env` (Hono)
-
-```ts
-interface Env {
-  DATABASE_URL: string
-  MY_KV: KVNamespace
-  MY_BUCKET: R2Bucket
-  MY_QUEUE: Queue
-  MY_DO: DurableObjectNamespace
-}
-```
 
 ## Secrets Management
 
@@ -55,9 +45,9 @@ interface Env {
 
 ## Request Handling
 
-- Workers are stateless—no global state
+- Module-level state lives as long as the isolate, not the request: keep it to the DB and auth singletons initialized in the constructor, and never store per-request data there
 - Use `waitUntil()` for async work after response
-- Respect CPU time limits (50ms on free, 30s on paid)
+- Respect the CPU time limit: Workers Paid defaults to 30 s per request, raisable to 5 min with `limits.cpu_ms`
 
 ```ts
 ctx.waitUntil(logAnalytics(request)) // non-blocking
@@ -72,8 +62,7 @@ return response
 
 ## Testing
 
-- The Worker suite runs inside workerd via `@cloudflare/vitest-pool-workers`, configured in `vitest.config.mts`
+- The Worker suite runs inside workerd via `cloudflareTest()` from `@cloudflare/vitest-plugin`, configured in `vitest.config.mts`
 - Bindings come from `wrangler.jsonc`'s dev environment — reach them with `import { env } from "cloudflare:workers"`
 - Don't hand-roll a stub for a binding the runtime provides: a stub returns whatever you chose, which proves nothing about the platform's semantics
 - Rate limits, and other binding-shaped configuration, are asserted against the values that ship — change `wrangler.jsonc` and the test moves with it
-- Test with `wrangler dev` locally

@@ -16,8 +16,6 @@ Small interface, large implementation (Ousterhout). Absorb complexity inside mod
 | API handler | `data-service/src/hono/handlers/{name}.ts` | Hono routes | Request validation, response mapping |
 | API service | `data-service/src/hono/services/{name}.ts` | Service functions returning `Result<T>` | Business rules, data-ops calls, error mapping |
 | Middleware | `data-service/src/hono/middleware/{name}.ts` | Hono middleware export | Auth checks, rate limit logic, header parsing |
-| Durable Object | `data-service/src/durable-objects/{name}.ts` | DO class + alarm/fetch | Internal state, storage ops |
-| Workflow | `data-service/src/workflows/{name}.ts` | Workflow class | Step orchestration, retries |
 
 ## data-ops Domain Pattern
 
@@ -39,7 +37,7 @@ One handler file + one service file per domain is fine. Don't split further unle
 
 ## Testing at the Boundary
 
-- **data-ops domains**: test exported query functions against real DB
+- **data-ops domains**: test exported query functions, mocking `getDb()` at the database boundary
 - **API handlers**: test via HTTP requests (`app.request()`)
 - **Middleware**: test via HTTP requests with appropriate fixtures
 - If you need to test an internal function → the module should probably split

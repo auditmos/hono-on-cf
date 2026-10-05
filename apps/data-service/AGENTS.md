@@ -76,7 +76,7 @@ Deployment is CI-only — see the Deployment section of the root `AGENTS.md`. Th
 pnpm run test               # vitest run, inside workerd
 ```
 
-This suite runs in the Workers runtime (`vitest.config.mts` wires `@cloudflare/vitest-pool-workers`), not Node. Bindings are the real ones from `wrangler.jsonc`'s dev environment — `import { env } from "cloudflare:workers"` and use them directly rather than stubbing. Rate-limit assertions therefore track whatever `ratelimits` says, so changing a limit there changes what the tests enforce.
+This suite runs in the Workers runtime (`vitest.config.mts` wires `cloudflareTest()` from `@cloudflare/vitest-plugin`), not Node. Bindings are the real ones from `wrangler.jsonc`'s dev environment — `import { env } from "cloudflare:workers"` and use them directly rather than stubbing. Rate-limit assertions therefore track whatever `ratelimits` says, so changing a limit there changes what the tests enforce.
 
 Everything runs locally: no credentials, no network, no container runtime. `.dev.vars` is loaded when present but nothing in the suite depends on it.
 

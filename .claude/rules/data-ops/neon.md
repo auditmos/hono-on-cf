@@ -66,12 +66,14 @@ DATABASE_PASSWORD="npg_xxx"
 - Use `.returning()` for mutations
 
 ```ts
+// packages/data-ops/src/client/queries.ts
+import { eq } from 'drizzle-orm'
 import { getDb } from '../database/setup'
-import { users } from '../drizzle/schema'
+import { clients } from './table'
 
-export async function getUser(userId: string) {
+export async function getClient(clientId: string) {
   const db = getDb()
-  const result = await db.select().from(users).where(eq(users.id, userId))
+  const result = await db.select().from(clients).where(eq(clients.id, clientId))
   return result[0] ?? null
 }
 ```
@@ -80,7 +82,7 @@ export async function getUser(userId: string) {
 
 - Drizzle Kit with env-specific configs: `drizzle-{env}.config.ts`
 - Separate migration output dirs per env: `migrations/dev`, `migrations/staging`, `migrations/production`
-- Schema sources: `auth-schema.ts`, `schema.ts`, `relations.ts`
+- Schema sources (the `schema` list in each `drizzle-{env}.config.ts`): `src/drizzle/auth-schema.ts`, each domain's `table.ts`, `src/drizzle/relations.ts`
 
 ## Serverless Patterns
 
