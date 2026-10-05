@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/auditmos/hono-on-cf/compare/v1.13.1...v1.14.0) (2026-10-05)
+
+
+### Features
+
+* **ci:** fail the build when docs name an undeclared package ([bb8b0cd](https://github.com/auditmos/hono-on-cf/commit/bb8b0cdc06866f5c435f0b3bfda8a0fed8b57ba8))
+
 ## [1.13.1](https://github.com/auditmos/hono-on-cf/compare/v1.13.0...v1.13.1) (2026-09-29)
 
 
