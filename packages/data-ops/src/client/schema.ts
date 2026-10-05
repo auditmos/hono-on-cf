@@ -5,10 +5,10 @@ import { z } from "zod";
 // ============================================
 
 export const ClientSchema = z.object({
-	id: z.string().uuid(),
+	id: z.uuid(),
 	name: z.string(),
 	surname: z.string(),
-	email: z.string().email(),
+	email: z.email(),
 });
 
 // ============================================
@@ -21,17 +21,17 @@ export const ClientCreateRequestSchema = z.object({
 		.string()
 		.min(1, "Surname is required")
 		.max(30, "Surname must be at most 30 characters"),
-	email: z.string().email("Invalid email format"),
+	email: z.email("Invalid email format"),
 });
 
 export const ClientUpdateRequestSchema = z
 	.object({
 		name: z.string().min(1).max(30).optional(),
 		surname: z.string().min(1).max(30).optional(),
-		email: z.string().email().optional(),
+		email: z.email().optional(),
 	})
 	.refine((data) => data.name || data.surname || data.email, {
-		message: "At least one field required",
+		error: "At least one field required",
 	});
 
 export const PaginationRequestSchema = z.object({
@@ -40,7 +40,7 @@ export const PaginationRequestSchema = z.object({
 });
 
 export const IdParamSchema = z.object({
-	id: z.string().uuid("Invalid ID format"),
+	id: z.uuid("Invalid ID format"),
 });
 
 // ============================================
