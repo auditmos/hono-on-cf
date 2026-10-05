@@ -31,15 +31,15 @@
 	"keywords": [],
 	"author": "",
 	"license": "MIT",
-	"packageManager": "pnpm@12.6.0",
+	"packageManager": "pnpm@12.9.1",
 	"dependencies": {
-		"@neondatabase/serverless": "^1.1.0",
-		"better-auth": "^1.7.6",
+		"@neondatabase/serverless": "^1.2.0",
+		"better-auth": "^1.7.7",
 		"drizzle-orm": "^0.45.3",
 		"zod": "^4.6.5"
 	},
 	"devDependencies": {
-		"@types/node": "^22.20.4",
+		"@types/node": "^22.20.5",
 		"drizzle-kit": "^0.31.11",
 		"postgres": "^3.4.9",
 		"tsx": "^4.23.15",
