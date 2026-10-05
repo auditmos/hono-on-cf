@@ -8,28 +8,22 @@ paths:
 ## Connection Setup
 
 - Singleton pattern: `initDatabase()` once in Worker entry, `getDb()` everywhere else
-- Connection string built internally from host/username/password
-- Uses `drizzle-orm/neon-http` adapter (Neon HTTP driver implicit)
+- Connection string built internally from host/username/password, with username and password URL-encoded
+- Uses `drizzle-orm/neon-http` adapter (Neon HTTP driver implicit), passing the auth schema and relations so `db.query.*` works
+- `getDb()` before `initDatabase()` throws `DatabaseNotInitializedError`
 
 ```ts
-// packages/data-ops/src/database/setup.ts
-import { drizzle } from 'drizzle-orm/neon-http'
-
-let db: ReturnType<typeof drizzle>
-
-export function initDatabase(connection: {
-  host: string
-  username: string
-  password: string
-}) {
+// packages/data-ops/src/database/setup.ts (abridged)
+export function initDatabase(connection: { host: string; username: string; password: string }) {
   if (db) return db
-  const connectionString = `postgres://${connection.username}:${connection.password}@${connection.host}`
-  db = drizzle(connectionString)
+  const username = encodeURIComponent(connection.username)
+  const password = encodeURIComponent(connection.password)
+  db = drizzle(`postgres://${username}:${password}@${connection.host}`, { schema })
   return db
 }
 
 export function getDb() {
-  if (!db) throw new Error('Database not initialized')
+  if (!db) throw new DatabaseNotInitializedError()
   return db
 }
 ```

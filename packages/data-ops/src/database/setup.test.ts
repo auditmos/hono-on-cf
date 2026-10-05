@@ -53,3 +53,26 @@ describe("initDatabase", () => {
 		expect(schema.sessionRelations).toBeDefined();
 	});
 });
+
+describe("getDb", () => {
+	beforeEach(() => {
+		vi.resetModules();
+	});
+
+	it("throws a DatabaseNotInitializedError before initDatabase() runs", async () => {
+		const setup = await import("./setup");
+
+		expect(() => setup.getDb()).toThrow(
+			expect.objectContaining({ name: "DatabaseNotInitializedError" }),
+		);
+		expect(() => setup.getDb()).toThrow(setup.DatabaseNotInitializedError);
+	});
+
+	it("returns the instance once initDatabase() has run", async () => {
+		const setup = await import("./setup");
+
+		const db = setup.initDatabase({ host: "h", username: "u", password: "p" });
+
+		expect(setup.getDb()).toBe(db);
+	});
+});

@@ -5,6 +5,13 @@ import * as authRelations from "../drizzle/relations";
 
 const schema = { ...authSchema, ...authRelations };
 
+export class DatabaseNotInitializedError extends Error {
+	constructor() {
+		super("Database not initialized");
+		this.name = "DatabaseNotInitializedError";
+	}
+}
+
 let db: ReturnType<typeof drizzle<typeof schema>>;
 
 export function initDatabase(connection: { host: string; username: string; password: string }) {
@@ -20,7 +27,7 @@ export function initDatabase(connection: { host: string; username: string; passw
 
 export function getDb() {
 	if (!db) {
-		throw new Error("Database not initialized");
+		throw new DatabaseNotInitializedError();
 	}
 	return db;
 }
