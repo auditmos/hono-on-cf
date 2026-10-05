@@ -60,6 +60,29 @@ describe("the check accepts documentation that matches the repository", () => {
 	it("reports nothing against this repository", () => {
 		expect(findDocDrift(ROOT)).toEqual([]);
 	});
+
+	it("accepts declared and workspace packages, with subpaths and version suffixes", () => {
+		const fixture = makeFixture({
+			"package.json": JSON.stringify({
+				scripts: { lint: "biome check .", test: "vitest run" },
+				devDependencies: { "@cloudflare/vitest-plugin": "^1.3.0" },
+			}),
+			"packages/data-ops/package.json": JSON.stringify({ name: "@repo/data-ops" }),
+			...withAgentsDoc(
+				[
+					"Tests run via `@cloudflare/vitest-plugin` (`@cloudflare/vitest-plugin@1.3.0`).",
+					"",
+					"```ts",
+					'import { getClient } from "@repo/data-ops/client";',
+					'import { App } from "@/hono/app";',
+					"```",
+					"",
+					"See https://www.npmjs.com/package/@scope/unlisted for background.",
+				].join("\n"),
+			),
+		});
+		expect(findDocDrift(fixture)).toEqual([]);
+	});
 });
 
 describe("the check fails on drift", () => {
@@ -85,6 +108,27 @@ describe("the check fails on drift", () => {
 		const drift = findDocDrift(makeFixture(withAgentsDoc("- `POST /webhooks/stripe`")));
 		expect(drift).toHaveLength(1);
 		expect(drift[0]).toMatchObject({ kind: "endpoint", reference: "/webhooks/stripe" });
+	});
+
+	it("fails when a package that no package.json declares is named", () => {
+		const drift = findDocDrift(
+			makeFixture(withAgentsDoc("Tests run via `@cloudflare/vitest-pool-workers`.")),
+		);
+		expect(drift).toHaveLength(1);
+		expect(drift[0]).toMatchObject({
+			kind: "package",
+			reference: "@cloudflare/vitest-pool-workers",
+		});
+	});
+
+	it("fails when a code example imports an undeclared package", () => {
+		const drift = findDocDrift(
+			makeFixture(
+				withAgentsDoc(["```ts", 'import { x } from "@scope/missing/sub";', "```"].join("\n")),
+			),
+		);
+		expect(drift).toHaveLength(1);
+		expect(drift[0]).toMatchObject({ kind: "package", reference: "@scope/missing" });
 	});
 
 	it("fails when a structure tree lists a directory that does not exist", () => {

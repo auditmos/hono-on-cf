@@ -2,9 +2,9 @@
  * Documentation-truth check.
  *
  * Verifies that agent-facing documents reference only directories, files,
- * endpoints, commands, and links that actually exist. Every other correction in
- * a documentation audit is one-time; this is the part that stops the audit from
- * being necessary again.
+ * endpoints, commands, scoped packages, and links that actually exist. Every
+ * other correction in a documentation audit is one-time; this is the part that
+ * stops the audit from being necessary again.
  *
  * Reads the filesystem only — no network, no credentials.
  *
@@ -15,7 +15,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export type DocIssueKind = "directory" | "file" | "script" | "link" | "endpoint";
+export type DocIssueKind = "directory" | "file" | "script" | "link" | "endpoint" | "package";
 
 export type DocIssue = {
 	doc: string;
@@ -112,6 +112,39 @@ function readScriptNames(packageJsonPath: string): string[] {
 		const { scripts } = parsed as { scripts?: unknown };
 		if (typeof scripts !== "object" || scripts === null) return [];
 		return Object.keys(scripts);
+	} catch {
+		return [];
+	}
+}
+
+const DEPENDENCY_FIELDS = [
+	"dependencies",
+	"devDependencies",
+	"peerDependencies",
+	"optionalDependencies",
+] as const;
+
+/** Every package a manifest names: its own name plus each dependency it declares. */
+function collectPackageNames(root: string): Set<string> {
+	const names = new Set<string>();
+	walk(root, (full) => {
+		if (basename(full) !== "package.json") return;
+		for (const name of readPackageNames(full)) names.add(name);
+	});
+	return names;
+}
+
+function readPackageNames(packageJsonPath: string): string[] {
+	try {
+		const parsed: unknown = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+		if (typeof parsed !== "object" || parsed === null) return [];
+		const manifest = parsed as Record<string, unknown>;
+		const names = typeof manifest.name === "string" ? [manifest.name] : [];
+		for (const field of DEPENDENCY_FIELDS) {
+			const deps = manifest[field];
+			if (typeof deps === "object" && deps !== null) names.push(...Object.keys(deps));
+		}
+		return names;
 	} catch {
 		return [];
 	}
@@ -258,6 +291,17 @@ function isMounted(path: string, mounts: string[]): boolean {
 	});
 }
 
+/**
+ * Scoped package names (`@scope/name`), in prose or code. A subpath or version
+ * suffix is dropped; a URL, an e-mail address or the `@/` alias is not a package.
+ * Unscoped names are skipped: they cannot be told apart from ordinary words.
+ */
+function packageReferences(content: string): string[] {
+	return [...content.matchAll(/(?<![\w.@/])@[a-z0-9][a-z0-9._~-]*\/[a-z0-9][a-z0-9._~-]*/g)].map(
+		(match) => match[0].replace(/\.+$/, ""),
+	);
+}
+
 function linkReferences(content: string): string[] {
 	return [...content.matchAll(/\[[^\]]*\]\(([^)\s]+)\)/g)]
 		.map((match) => match[1] ?? "")
@@ -272,6 +316,7 @@ type DocContext = {
 	fences: string[];
 	bases: string[];
 	scripts: Set<string>;
+	packages: Set<string>;
 	mounts: string[];
 };
 
@@ -304,6 +349,17 @@ function checkScripts(context: DocContext): DocIssue[] {
 		}));
 }
 
+function checkPackages(context: DocContext): DocIssue[] {
+	return packageReferences(context.content)
+		.filter((name) => !context.packages.has(name))
+		.map((reference) => ({
+			doc: context.doc,
+			kind: "package" as const,
+			reference,
+			message: `names package "${reference}", which no package.json declares`,
+		}));
+}
+
 function checkEndpoints(context: DocContext): DocIssue[] {
 	return endpointReferences(context.prose)
 		.filter((path) => !isMounted(path, context.mounts))
@@ -333,6 +389,7 @@ function checkLinks(context: DocContext): DocIssue[] {
 
 export function findDocDrift(root: string): DocIssue[] {
 	const scripts = collectScriptNames(root);
+	const packages = collectPackageNames(root);
 	const mounts = collectRouteMounts(root);
 	const issues: DocIssue[] = [];
 
@@ -347,11 +404,13 @@ export function findDocDrift(root: string): DocIssue[] {
 			fences,
 			bases: resolutionBases(root, doc),
 			scripts,
+			packages,
 			mounts,
 		};
 		issues.push(
 			...checkPaths(context),
 			...checkScripts(context),
+			...checkPackages(context),
 			...checkEndpoints(context),
 			...checkLinks(context),
 		);
@@ -372,7 +431,7 @@ function main(): void {
 	const issues = findDocDrift(root);
 
 	if (issues.length === 0) {
-		console.log("✓ every documented directory, file, endpoint, command and link resolves");
+		console.log("✓ every documented directory, file, endpoint, command, package and link resolves");
 		return;
 	}
 
