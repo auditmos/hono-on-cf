@@ -31,12 +31,12 @@
 	"keywords": [],
 	"author": "",
 	"license": "MIT",
-	"packageManager": "pnpm@12.9.1",
+	"packageManager": "pnpm@12.14.0",
 	"dependencies": {
 		"@neondatabase/serverless": "^1.2.0",
-		"better-auth": "^1.7.7",
-		"drizzle-orm": "^0.45.3",
-		"zod": "^4.6.5"
+		"better-auth": "^1.7.10",
+		"drizzle-orm": "^0.45.4",
+		"zod": "^4.6.7"
 	},
 	"devDependencies": {
 		"@types/node": "^22.20.5",

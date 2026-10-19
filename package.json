@@ -40,21 +40,21 @@
 	"keywords": [],
 	"author": "",
 	"license": "MIT",
-	"packageManager": "pnpm@12.9.1",
+	"packageManager": "pnpm@12.14.0",
 	"devDependencies": {
 		"@biomejs/biome": "2.4.4",
 		"@semantic-release/changelog": "^6.0.3",
 		"@semantic-release/git": "^10.0.1",
 		"@types/node": "^22.20.5",
-		"@vitest/coverage-v8": "^4.1.11",
-		"js-yaml": "^5.4.2",
-		"knip": "^6.39.0",
+		"@vitest/coverage-v8": "^4.1.12",
+		"js-yaml": "^5.5.0",
+		"knip": "^6.41.0",
 		"semantic-release": "^25.0.9",
 		"simple-git-hooks": "^2.14.0",
 		"taze": "^19.17.2",
 		"tsx": "^4.23.15",
 		"typescript": "^5.9.3",
-		"vitest": "^4.1.11"
+		"vitest": "^4.1.12"
 	},
 	"simple-git-hooks": {
 		"pre-commit": "pnpm run lint:ci",
