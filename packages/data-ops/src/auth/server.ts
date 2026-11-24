@@ -3,6 +3,13 @@ import type { getDb } from "../database/setup";
 import { auth_account, auth_session, auth_user, auth_verification } from "../drizzle/auth-schema";
 import { createBetterAuth } from "./setup";
 
+class AuthNotInitializedError extends Error {
+	constructor() {
+		super("Auth not initialized");
+		this.name = "AuthNotInitializedError";
+	}
+}
+
 let betterAuth: ReturnType<typeof createBetterAuth>;
 
 export function setAuth(
@@ -31,7 +38,7 @@ export function setAuth(
 
 export function getAuth() {
 	if (!betterAuth) {
-		throw new Error("Auth not initialized");
+		throw new AuthNotInitializedError();
 	}
 	return betterAuth;
 }

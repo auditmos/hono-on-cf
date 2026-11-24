@@ -9,6 +9,13 @@ import type {
 } from "./schema";
 import { clients } from "./table";
 
+class ClientNotCreatedError extends Error {
+	constructor() {
+		super("Failed to create client");
+		this.name = "ClientNotCreatedError";
+	}
+}
+
 export async function getClient(clientId: string): Promise<Client | null> {
 	const db = getDb();
 	const result = await db.select().from(clients).where(eq(clients.id, clientId));
@@ -37,7 +44,7 @@ export async function createClient(data: ClientCreateInput): Promise<Client> {
 	const db = getDb();
 	const [client] = await db.insert(clients).values(data).returning();
 	if (!client) {
-		throw new Error("Failed to create client");
+		throw new ClientNotCreatedError();
 	}
 	return client;
 }

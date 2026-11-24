@@ -29,7 +29,12 @@ describe("auth server", () => {
 
 	it("getAuth throws when auth not initialized", async () => {
 		const { getAuth } = await import("./server");
-		expect(() => getAuth()).toThrow("Auth not initialized");
+		expect(() => getAuth()).toThrow(
+			expect.objectContaining({
+				name: "AuthNotInitializedError",
+				message: "Auth not initialized",
+			}),
+		);
 	});
 
 	it("setAuth creates and returns auth instance", async () => {
