@@ -1,10 +1,17 @@
 import type { Context, Next } from "hono";
 import { cors } from "hono/cors";
 
+class MissingAllowedOriginsError extends Error {
+	constructor(environment: string) {
+		super(`ALLOWED_ORIGINS must be set when CLOUDFLARE_ENV is "${environment}"`);
+		this.name = "MissingAllowedOriginsError";
+	}
+}
+
 export const assertCorsConfig = (env: Env): void => {
 	if (env.CLOUDFLARE_ENV === "dev") return;
 	if (!env.ALLOWED_ORIGINS?.trim()) {
-		throw new Error(`ALLOWED_ORIGINS must be set when CLOUDFLARE_ENV is "${env.CLOUDFLARE_ENV}"`);
+		throw new MissingAllowedOriginsError(env.CLOUDFLARE_ENV);
 	}
 };
 

@@ -75,7 +75,8 @@ const data = UserCreateSchema.parse(body)
 - Services return `Result<T>` (see `error-handling.md`) — never throw
 - Handlers map `Result<T>` to responses via the local `resultToResponse` helper
 - For middleware short-circuits (auth, rate limit, validation), throw `HTTPException` from `hono/http-exception` — the global `onErrorHandler` formats it
-- Don't introduce a new error class; the two surfaces above cover every case in this service
+- Don't introduce a new error class for request handling; the two surfaces above cover every request
+- A check that runs once at Worker startup, outside any request (e.g. `assertCorsConfig` in the constructor), throws its own typed error class: there is no Hono context for `HTTPException`, and `throw new Error(...)` is banned by the `no-raw-throw` Biome plugin
 
 ## Response Patterns
 
