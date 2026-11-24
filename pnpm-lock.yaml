@@ -204,8 +204,8 @@ importers:
         specifier: ^5.5.0
         version: 5.5.0
       knip:
-        specifier: ^6.47.0
-        version: 6.47.0
+        specifier: ^6.48.0
+        version: 6.48.0
       semantic-release:
         specifier: ^25.0.9
         version: 25.0.9(supports-color@10.2.2)(typescript@5.9.3)
@@ -229,13 +229,13 @@ importers:
     dependencies:
       '@hono/zod-validator':
         specifier: ^0.7.6
-        version: 0.7.6(hono@4.13.20)(zod@4.6.7)
+        version: 0.7.6(hono@4.13.21)(zod@4.6.7)
       '@repo/data-ops':
         specifier: workspace:*
         version: link:../../packages/data-ops
       hono:
-        specifier: ^4.13.20
-        version: 4.13.20
+        specifier: ^4.13.21
+        version: 4.13.21
     devDependencies:
       '@cloudflare/vitest-plugin':
         specifier: ^1.9.0
@@ -260,7 +260,7 @@ importers:
         version: 1.2.1
       better-auth:
         specifier: ^1.7.27
-        version: 1.7.27(@opentelemetry/api@1.9.0)(@tanstack/react-start@1.166.14(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(supports-color@10.2.2)(vite@7.3.1(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.31.1)(terser@5.43.1)(tsx@4.23.15)(yaml@2.9.1)))(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@cloudflare/workers-types@4.20260702.1)(@neondatabase/serverless@1.2.1)(@opentelemetry/api@1.9.0)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.5)(better-sqlite3@12.2.0)(kysely@0.28.17)(mysql2@3.14.3)(postgres@3.4.9))(mongodb@7.1.0)(mysql2@3.14.3)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.9)(vitest@5.1.1)
+        version: 1.7.27(@opentelemetry/api@1.9.0)(@tanstack/react-start@1.166.14(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(supports-color@10.2.2)(vite@7.3.1(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.31.1)(terser@5.43.1)(tsx@4.23.15)(yaml@2.9.1)))(@vitest/coverage-v8@5.1.1)(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@cloudflare/workers-types@4.20260702.1)(@neondatabase/serverless@1.2.1)(@opentelemetry/api@1.9.0)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.5)(better-sqlite3@12.2.0)(kysely@0.28.17)(mysql2@3.14.3)(postgres@3.4.9))(mongodb@7.1.0)(mysql2@3.14.3)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.9)(vite@7.3.1(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.31.1)(terser@5.43.1)(tsx@4.23.15)(yaml@2.9.1))(vitest@5.1.1)
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@cloudflare/workers-types@4.20260702.1)(@neondatabase/serverless@1.2.1)(@opentelemetry/api@1.9.0)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.5)(better-sqlite3@12.2.0)(kysely@0.28.17)(mysql2@3.14.3)(postgres@3.4.9)
@@ -3227,8 +3227,8 @@ packages:
   highlight.js@10.7.3:
     resolution: {integrity: sha512-tzcUFauisWKNHaRkN4Wjl/ZA07gENAjFl3J/c480dprkGTg5EQstgaNFqBfUqCq54kZRIEcreTsAgF/m2quD7A==}
 
-  hono@4.13.20:
-    resolution: {integrity: sha512-xo6gecEJQ+CjTtOUUbcLHE8CdRKMeF4qITe+DT+OhFnSUmZR/ZBa9XavAfiGh4HlukmlaHFdaK4dz5tkTYFNmA==}
+  hono@4.13.21:
+    resolution: {integrity: sha512-h9UsguqfVk4kjUwLvQpHOmOaJpW10jz9lp8bvKUUa04wJG/fabKFBqXZ06D6LFaeKQZtUZRVeg0gfkTTEsX7Mw==}
     engines: {node: '>=16.9.0'}
 
   hook-std@4.0.0:
@@ -3440,8 +3440,8 @@ packages:
     resolution: {integrity: sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==}
     engines: {node: '>=6'}
 
-  knip@6.47.0:
-    resolution: {integrity: sha512-nYmQnk0YqDXIJrYViJz88c8xw3tBDkpuAmofo58EkVPnKr6DnRKYtf6oIqcGVHZvXDE+gtmFuYx277/QsWng+A==}
+  knip@6.48.0:
+    resolution: {integrity: sha512-v+Gfp6uiOeXaaj+Khk2Z7/fTTZYWLnDwxZapQUyy8WoQFLYXiUHXqRdFJTwRnrKNA1gPXTPi5NGTKKLXyImVrg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
@@ -5631,9 +5631,9 @@ snapshots:
 
   '@henrygd/queue@1.2.0': {}
 
-  '@hono/zod-validator@0.7.6(hono@4.13.20)(zod@4.6.7)':
+  '@hono/zod-validator@0.7.6(hono@4.13.21)(zod@4.6.7)':
     dependencies:
-      hono: 4.13.20
+      hono: 4.13.21
       zod: 4.6.7
 
   '@img/colour@1.1.0': {}
@@ -6640,7 +6640,7 @@ snapshots:
 
   before-after-hook@4.0.0: {}
 
-  better-auth@1.7.27(@opentelemetry/api@1.9.0)(@tanstack/react-start@1.166.14(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(supports-color@10.2.2)(vite@7.3.1(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.31.1)(terser@5.43.1)(tsx@4.23.15)(yaml@2.9.1)))(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@cloudflare/workers-types@4.20260702.1)(@neondatabase/serverless@1.2.1)(@opentelemetry/api@1.9.0)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.5)(better-sqlite3@12.2.0)(kysely@0.28.17)(mysql2@3.14.3)(postgres@3.4.9))(mongodb@7.1.0)(mysql2@3.14.3)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.9)(vitest@5.1.1):
+  better-auth@1.7.27(@opentelemetry/api@1.9.0)(@tanstack/react-start@1.166.14(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(supports-color@10.2.2)(vite@7.3.1(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.31.1)(terser@5.43.1)(tsx@4.23.15)(yaml@2.9.1)))(@vitest/coverage-v8@5.1.1)(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@cloudflare/workers-types@4.20260702.1)(@neondatabase/serverless@1.2.1)(@opentelemetry/api@1.9.0)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.5)(better-sqlite3@12.2.0)(kysely@0.28.17)(mysql2@3.14.3)(postgres@3.4.9))(mongodb@7.1.0)(mysql2@3.14.3)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.9)(vite@7.3.1(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.31.1)(terser@5.43.1)(tsx@4.23.15)(yaml@2.9.1))(vitest@5.1.1):
     dependencies:
       '@better-auth/core': 1.7.27(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.0)(better-call@1.4.6(zod@4.6.7))(jose@6.2.3)(kysely@0.28.17)(nanostores@1.3.0)
       '@better-auth/drizzle-adapter': 1.7.27(@better-auth/core@1.7.27(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.0)(better-call@1.4.6(zod@4.6.7))(jose@6.2.3)(kysely@0.28.17)(nanostores@1.3.0))(@better-auth/utils@0.5.1)(drizzle-orm@0.45.4(@cloudflare/workers-types@4.20260702.1)(@neondatabase/serverless@1.2.1)(@opentelemetry/api@1.9.0)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.5)(better-sqlite3@12.2.0)(kysely@0.28.17)(mysql2@3.14.3)(postgres@3.4.9))
@@ -6671,6 +6671,8 @@ snapshots:
       vitest: 5.1.1(@opentelemetry/api@1.9.0)(@types/node@22.20.5)(@vitest/coverage-v8@5.1.1)(jsdom@26.1.0(supports-color@10.2.2))(vite@7.3.1(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.31.1)(terser@5.43.1)(tsx@4.23.15)(yaml@2.9.1))
     transitivePeerDependencies:
       - '@opentelemetry/api'
+      - '@vitest/coverage-v8'
+      - vite
 
   better-call@1.4.6(zod@4.6.7):
     dependencies:
@@ -7496,7 +7498,7 @@ snapshots:
 
   highlight.js@10.7.3: {}
 
-  hono@4.13.20: {}
+  hono@4.13.21: {}
 
   hook-std@4.0.0: {}
 
@@ -7700,7 +7702,7 @@ snapshots:
 
   kleur@4.1.5: {}
 
-  knip@6.47.0:
+  knip@6.48.0:
     dependencies:
       formatly: 0.11.4
       get-tsconfig: 4.14.3
