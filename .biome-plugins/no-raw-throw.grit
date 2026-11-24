@@ -1,5 +1,5 @@
 language js
 
-pattern no_raw_throw() { `throw new Error($msg)` => . }
-
-no_raw_throw()
+`throw new Error($msg)` as $throw where {
+	register_diagnostic(span=$throw, message="Throw a typed error class instead of a bare `Error`.")
+}

@@ -75,6 +75,16 @@
 					}
 				}
 			}
+		},
+		{
+			"includes": [
+				"apps/*/src/**",
+				"packages/*/src/**",
+				"packages/*/config/**",
+				"!**/*.test.ts",
+				"!**/*.test.tsx"
+			],
+			"plugins": ["./.biome-plugins/no-raw-throw.grit"]
 		}
 	],
 	"files": {
@@ -95,11 +105,5 @@
 			"!plugins/**/.claude-plugin"
 		]
 	},
-	"plugins": [
-		"./.biome-plugins/no-raw-throw.grit",
-		"./.biome-plugins/no-then-chains.grit",
-		"./.biome-plugins/no-ts-ignore.grit",
-		"./.biome-plugins/no-as-any.grit",
-		"./.biome-plugins/no-todo-comments.grit"
-	]
+	"plugins": ["./.biome-plugins/no-then-chains.grit"]
 }

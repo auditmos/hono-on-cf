@@ -1,5 +1,0 @@
-language js
-
-pattern no_as_any() { `$expr as any` => . }
-
-no_as_any()

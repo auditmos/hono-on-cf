@@ -19,7 +19,7 @@ type Result<T> = { success: boolean; data?: T; error?: Error }
 ## Error Handling
 
 - Create custom error classes extending `Error`
-- Never `throw new Error(string)`—use typed errors
+- Never `throw new Error(string)`—use typed errors. The `no-raw-throw` Biome plugin enforces this in `apps/*/src`, `packages/*/src` and `packages/*/config`; tests and `scripts/` are exempt
 - Use `Result<T>` pattern for recoverable errors
 - Let unexpected errors propagate for logging
 

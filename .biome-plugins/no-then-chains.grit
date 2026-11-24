@@ -1,5 +1,5 @@
 language js
 
-pattern no_then_chains() { `$promise.then($callback)` => . }
-
-no_then_chains()
+`$promise.then($callback)` as $call where {
+	register_diagnostic(span=$call, message="Use `await` instead of a `.then()` chain.")
+}
