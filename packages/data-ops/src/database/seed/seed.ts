@@ -42,6 +42,8 @@ async function seedDb() {
 	process.exit(0);
 }
 
-seedDb().catch((_error) => {
+seedDb().catch((error) => {
+	// biome-ignore lint/suspicious/noConsole: CLI script; stderr is the only place its failure can surface
+	console.error(error);
 	process.exit(1);
 });
