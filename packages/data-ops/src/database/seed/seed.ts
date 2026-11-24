@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { sql } from "drizzle-orm";
 import { clients } from "../../client/table";
-import { initDatabase } from "../setup";
+import { initDatabase, MissingDatabaseEnvError } from "../setup";
 
 const sampleClients = [
 	{ name: "John", surname: "Smith", email: "john.smith@example.com" },
@@ -32,7 +32,7 @@ async function seedDb() {
 	const password = process.env.DATABASE_PASSWORD;
 
 	if (!host || !username || !password) {
-		throw new Error("Missing required DATABASE_* environment variables");
+		throw new MissingDatabaseEnvError();
 	}
 
 	const db = initDatabase({ host, username, password });

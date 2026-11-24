@@ -2,14 +2,7 @@
 
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { createBetterAuth } from "../src/auth/setup";
-import { initDatabase } from "../src/database/setup";
-
-class MissingDatabaseEnvError extends Error {
-	constructor() {
-		super("Missing required DATABASE_* environment variables");
-		this.name = "MissingDatabaseEnvError";
-	}
-}
+import { initDatabase, MissingDatabaseEnvError } from "../src/database/setup";
 
 const password = process.env.DATABASE_PASSWORD;
 const host = process.env.DATABASE_HOST;

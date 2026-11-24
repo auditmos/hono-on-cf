@@ -12,6 +12,13 @@ export class DatabaseNotInitializedError extends Error {
 	}
 }
 
+export class MissingDatabaseEnvError extends Error {
+	constructor() {
+		super("Missing required DATABASE_* environment variables");
+		this.name = "MissingDatabaseEnvError";
+	}
+}
+
 let db: ReturnType<typeof drizzle<typeof schema>>;
 
 export function initDatabase(connection: { host: string; username: string; password: string }) {
