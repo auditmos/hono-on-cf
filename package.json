@@ -42,7 +42,7 @@
 	"license": "MIT",
 	"packageManager": "pnpm@12.23.0",
 	"devDependencies": {
-		"@biomejs/biome": "2.4.4",
+		"@biomejs/biome": "2.6.8",
 		"@semantic-release/changelog": "^6.0.3",
 		"@semantic-release/git": "^10.0.1",
 		"@types/node": "^22.20.5",

@@ -68,19 +68,23 @@ describe("every environment survives a config dry-run", () => {
 	// The deploy pipeline uploads versions rather than replacing the running
 	// Worker, so this dry-runs the command the pipeline actually issues. Needs no
 	// credentials: it bundles and validates without reaching the platform.
-	it.each(ALL_ENVIRONMENTS)("dry-runs cleanly for %s", (environment) => {
-		expect(() =>
-			execFileSync(
-				join(DATA_SERVICE, "node_modules/.bin/wrangler"),
-				["versions", "upload", "--dry-run", "--env", environment],
-				{
-					cwd: DATA_SERVICE,
-					stdio: "pipe",
-					env: { ...process.env, WRANGLER_SEND_METRICS: "false", CI: "1" },
-				},
-			),
-		).not.toThrow();
-	}, 180_000);
+	it.each(ALL_ENVIRONMENTS)(
+		"dry-runs cleanly for %s",
+		(environment) => {
+			expect(() =>
+				execFileSync(
+					join(DATA_SERVICE, "node_modules/.bin/wrangler"),
+					["versions", "upload", "--dry-run", "--env", environment],
+					{
+						cwd: DATA_SERVICE,
+						stdio: "pipe",
+						env: { ...process.env, WRANGLER_SEND_METRICS: "false", CI: "1" },
+					},
+				),
+			).not.toThrow();
+		},
+		180_000,
+	);
 });
 
 describe("Smart Placement runs the Worker near its database", () => {

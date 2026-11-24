@@ -10,16 +10,15 @@ describe("better-auth CLI config", () => {
 		vi.unstubAllEnvs();
 	});
 
-	it.each([
-		"DATABASE_HOST",
-		"DATABASE_USERNAME",
-		"DATABASE_PASSWORD",
-	])("rejects with MissingDatabaseEnvError when %s is unset", async (name) => {
-		vi.stubEnv(name, "");
+	it.each(["DATABASE_HOST", "DATABASE_USERNAME", "DATABASE_PASSWORD"])(
+		"rejects with MissingDatabaseEnvError when %s is unset",
+		async (name) => {
+			vi.stubEnv(name, "");
 
-		await expect(import("./auth")).rejects.toMatchObject({
-			name: "MissingDatabaseEnvError",
-			message: "Missing required DATABASE_* environment variables",
-		});
-	});
+			await expect(import("./auth")).rejects.toMatchObject({
+				name: "MissingDatabaseEnvError",
+				message: "Missing required DATABASE_* environment variables",
+			});
+		},
+	);
 });
