@@ -1,3 +1,11 @@
+## [1.14.1](https://github.com/auditmos/hono-on-cf/compare/v1.14.0...v1.14.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* **data-ops:** print the error when the seed script fails ([942c4b4](https://github.com/auditmos/hono-on-cf/commit/942c4b4a76854f21ae8e48b98d8abadc796a831b))
+* **lint:** make the custom biome plugins report ([7f15e61](https://github.com/auditmos/hono-on-cf/commit/7f15e61bb5bb7dadeef5a067cd256aaaca614c3b))
+
 # [1.14.0](https://github.com/auditmos/hono-on-cf/compare/v1.13.1...v1.14.0) (2026-10-05)
 
 
